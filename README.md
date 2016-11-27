@@ -1,6 +1,6 @@
 # Multi-task Q transfer
 
-Fork of gym repo, with mountain_car.py modified in /gym
+Fork of gym repo, with mountain_car.py modified in `gym/gym/envs/classic_control`
 
 
 ## installation
