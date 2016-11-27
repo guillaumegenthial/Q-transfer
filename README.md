@@ -10,6 +10,13 @@ For simplicity, gym repo is cloned in the repo. To install project,
 git clone https://github.com/GuillaumeGenthial/Q-transfer.git
 cd Q-transfer/gym
 python setup.py develop
+cd ..
+```
+
+## run test
+
+```
+python test.py
 ```
 
 
