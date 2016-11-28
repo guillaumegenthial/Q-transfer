@@ -63,6 +63,8 @@ class MountainCarEnv(gym.Env):
             return - (velocity/self.max_speed)**2
         elif mode == 2:
             return position - self.goal_position
+        elif mode == 3:
+            return (position+0.5)**2
         else:
             print "Unknown mode ".format(mode)
             raise
