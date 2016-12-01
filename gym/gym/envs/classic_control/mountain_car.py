@@ -8,6 +8,32 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 
+"""
+Modifications of the original env to create similar and related tasks by changing
+    - dynamics
+    - reward
+
+Use :
+    - set_reward_modes : to change reward as a combination of different rewards
+    - set_slope : to change the slope of the problem, the higher, the more difficult
+    - set_max_speed : to change max speed
+    - set_power : to change the acceleration of the car, the higher, the easier
+
+# Example
+    ```python
+    env.set_reward_modes([
+        ("time", 1),
+        ("energy", 0),
+        ("distance", 0),
+        ("center", 0),
+        ("height", 1)
+        ])
+    env.set_slope(0.0025)
+    env.set_max_speed(0.07)
+    env.set_power(0.001)
+    ```
+"""
+
 class MountainCarEnv(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
@@ -30,44 +56,88 @@ class MountainCarEnv(gym.Env):
 
         self._seed()
         self.reset()
-        self.set_mode()
+
+        # ------------ MODIFIED ------------
+        self.set_reward_modes()
+        self.set_slope()
+        self.set_max_speed()
+        self.set_power()
+        # -------------------------------
+
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def set_mode(self, mode=0):
-        self.mode = mode
+
+    # ------------  MODIFIED  ------------
+    def set_reward_modes(self, modes=[("time", 1), ]):
+        """
+        list of tuples (mode, proportion)
+        reward will be a weighted sum of the mode rewards
+        """
+        self.reward_modes = modes
+
+    def set_slope(self, slope=0.0025):
+        """
+        if slope is higher, more difficult
+        for slope = 0.0015, very easy (almost no strategy)
+        """
+        self.slope = slope
+
+    def set_max_speed(self, speed=0.07):
+        self.max_speed = speed
+        self.low = np.array([self.min_position, -self.max_speed])
+        self.high = np.array([self.max_position, self.max_speed])
+        self.observation_space = spaces.Box(self.low, self.high)
+
+    def set_power(self, power=0.001):
+        """
+        acceleration of the car, higher is better
+        """
+        self.power = power
+
+    def _reward(self, position, velocity, done):
+        modes = self.reward_modes
+        reward = 0
+        for (mode, prop) in modes:
+            if mode == "time":
+                reward += prop * - 1.0
+            elif mode == "energy":
+                reward += prop * - (velocity/self.max_speed)**2
+            elif mode == "distance":
+                reward += prop * position - self.goal_position
+            elif mode == "center":
+                reward += prop * (position+0.52)**2
+            elif mode == "height":
+                reward += prop * self._height(position)
+            else:
+                print "Unknown mode ".format(mode)
+                raise
+
+        return reward
+    # -----------------------------------
 
     def _step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
 
         position, velocity = self.state
-        velocity += (action-1)*0.001 + math.cos(3*position)*(-0.0025)
+        # ------------ MODIFIED ------------
+        velocity += (action-1)*self.power + math.cos(3*position)*(-self.slope)
+        # -------------------------------
         velocity = np.clip(velocity, -self.max_speed, self.max_speed)
         position += velocity
         position = np.clip(position, self.min_position, self.max_position)
         if (position==self.min_position and velocity<0): velocity = 0
 
         done = bool(position >= self.goal_position)
+        # ------------ MODIFIED ------------
         reward = self._reward(position, velocity, done)
+        # -------------------------------
 
         self.state = (position, velocity)
         return np.array(self.state), reward, done, {}
 
-    def _reward(self, position, velocity, done):
-        mode = self.mode
-        if mode == 0:
-            return - 1.0
-        elif mode == 1:
-            return - (velocity/self.max_speed)**2
-        elif mode == 2:
-            return position - self.goal_position
-        elif mode == 3:
-            return (position+0.5)**2
-        else:
-            print "Unknown mode ".format(mode)
-            raise
 
     def _reset(self):
         self.state = np.array([self.np_random.uniform(low=-0.6, high=-0.4), 0])
