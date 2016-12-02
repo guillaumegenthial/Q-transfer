@@ -62,7 +62,7 @@ class MountainCarEnv(gym.Env):
         elif mode == 1:
             return - (velocity/self.max_speed)**2
         elif mode == 2:
-            return position - self.goal_position
+            return - 1.0 + self._height(position)
         elif mode == 3:
             return (position+0.5)**2
         else:

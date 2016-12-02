@@ -21,8 +21,11 @@ class SimpleQLearning:
         
         if weights:
             with open(weights, "rb") as fin:
+                print("Loading weights from file {}".format(weights))
                 weights_ = pickle.load(fin)
-                self.weights = weights_
+                self.weights = defaultdict(float)
+                for k, v in weights_.iteritems():
+                    self.weights[k] = v
         else:
             self.weights = defaultdict(float)
 
@@ -66,10 +69,11 @@ class SimpleQLearning:
             return
         
         phi = self.featureExtractor(state, action)
-        pred = sum(self.weights[k] * v for k,v in phi)
+        pred = self.evalQ(state, action)
         try:
             v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
         except:
+            print "error"
             v_opt = 0.
         target = reward + self.discount * v_opt
         for k,v in phi:
@@ -89,18 +93,20 @@ class SimpleQLearning:
 
             for it in xrange(max_iter):
                 if done:
-                    if verbose: print("Episode finished after {} timesteps".format(it+1))
+                    if verbose: 
+                        print("Episode finished after {} timesteps".format(it+1))
                     break
-
+                if verbose:
+                    env.render()
                 action = self.getAction(state)
                 newState, reward, done, info = env.step(action)
                 self.updateQ(state, action, reward, newState)
-
                 totalReward += totalDiscount * reward
                 totalDiscount *= self.discount
                 state = newState
 
             totalRewards.append(totalReward)
+            print("Trial nb {}, total reward {}".format(trial, totalReward))
 
         print "Average reward:", sum(totalRewards)/num_trials
         return totalRewards
@@ -113,15 +119,30 @@ def simpleFeatures(state, action):
     Return a list of (feature-name, value)
     """
     pos, vel = state
-    features = [((pos * 100, vel * 1000, action), 1), (('pos', pos * 100, action), 1), (('vel', vel * 1000, action), 1), (action, 1)]
+    features = [((int(pos * 100), int(vel * 1000), action), 1), (('pos', int(pos * 100), action), 1), (('vel', int(vel * 1000), action), 1), (action, 1)]
     return features
 
 ############################################################
 
-def rl_policy(env, featureExtractor, num_trials = 1000, max_iter = 500, filename = "weights.p", verbose = False):
+def rl_policy(env, featureExtractor, num_trials=1, max_iter=10000, filename="weights.p", verbose = False, reload_weights=True, discount=1, explorationProb=0.1):
+    if reload_weights:
+        weights = filename
+    else:
+        weights = None
     actions = range(env.action_space.n)
-    rl = SimpleQLearning(actions, discount = .99, featureExtractor = featureExtractor, explorationProb = 0.2)
-    rl.train(env, num_trials = num_trials, max_iter = max_iter, verbose = verbose)
+    rl = SimpleQLearning(
+        actions, 
+        discount=discount, 
+        featureExtractor=featureExtractor, 
+        explorationProb=explorationProb, 
+        weights=weights
+        )
+    rl.train(
+        env, 
+        num_trials=num_trials, 
+        max_iter=max_iter, 
+        verbose=verbose
+        )
     rl.makeGreedy()
     policy = lambda s : rl.getAction(s)
 
@@ -132,8 +153,14 @@ def rl_policy(env, featureExtractor, num_trials = 1000, max_iter = 500, filename
     
     return policy
 
-def load_policy(filename, env, featureExtractor):
+def load_policy(filename, env, featureExtractor, discount=1):
     actions = range(env.action_space.n)
-    rl = SimpleQLearning(actions, discount = .99, featureExtractor = featureExtractor, explorationProb = 0., weights = filename)
+    rl = SimpleQLearning(
+        actions, 
+        discount=discount, 
+        featureExtractor=featureExtractor, 
+        explorationProb=0., 
+        weights=filename
+        )
     policy = lambda s : rl.getAction(s)    
     return policy
