@@ -114,7 +114,7 @@ class MountainCarEnv(gym.Env):
             elif mode == "distance":
                 reward += prop * (position - self.goal_position)
             elif mode == "center":
-                reward += prop * (position+0.52)**2
+                reward += prop * (position - (-0.52))**2
             elif mode == "height":
                 reward += prop * self._height(position)
             else:

@@ -1,11 +1,14 @@
 import sys
+import os
 import time
 import collections
 import numpy as np
 try:
 	import pyqtgraph as pg
 	from pyqtgraph.Qt import QtGui, QtCore
+	import pyqtgraph.exporters
 	pg.setConfigOption('background', 'w')
+	pg.setConfigOption('foreground', 'k')
 except Exception, e:
 	print "Unable to import pyqtgraph"
 
@@ -30,7 +33,7 @@ class LivePlotter(object):
 		self.downsample = kwargs.get("downsample", 10)
 		self.point_nb = kwargs.get("point_nb", 100)
 		self.size = kwargs.get("size", (600, 300))
-		self.pen = kwargs.get("pen", "r")
+		self.pen = kwargs.get("pen", pg.mkPen(color="k", width=1.5))
 		self.x_axis = kwargs.get("x_axis", "x")
 		self.y_axis = kwargs.get("y_axis", "y")
 		self.x_unit = kwargs.get("x_unit", "t")
@@ -93,6 +96,22 @@ class LivePlotter(object):
 		"""
 		try:
 			self.win.close()
+		except Exception, e:
+			pass
+
+	def export(self, repo):
+		"""
+		export plot in png in repo
+		"""
+		try:
+			pg.QtGui.QApplication.processEvents()
+			exporter = pg.exporters.ImageExporter(self.p)
+			exporter.parameters()['width'] = 1024
+			if repo[-1] == "/":
+				export_path = repo + self.name + ".png"
+			else:
+				export_path = repo + "/" + self.name + ".png"
+			exporter.export(export_path)
 		except Exception, e:
 			pass
 
@@ -170,13 +189,29 @@ class PlotManager(object):
 		for name, plot in self.plots.iteritems():
 			plot.update()
 
-	def close(self):
+	def _close(self):
+		for name, plot in self.plots.iteritems():
+			plot.close()
+
+	def close(self, force=False):
 		"""
 		Close window from Terminal
 		"""
-		try:
-			wait = input("Press ENTER to close plots")
-		except Exception, e:
-			pass
+		if force:
+			self._close()
+		else:
+			try:
+				wait = input("Press ENTER to close plots")
+			except Exception, e:
+				pass
+			self._close()
+		
+	def export(self, repo=""):
+		"""
+		Export all plots seperatly in the repo
+		"""
+		full_repo = "{}/{}".format(os.getcwd(), repo)
 		for name, plot in self.plots.iteritems():
-			plot.close()
+			plot.export(full_repo)
+		print("Successfully exported plots in {}".format(full_repo))
+		pass

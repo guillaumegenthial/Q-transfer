@@ -8,28 +8,43 @@ from copy import deepcopy
 from streamplot import PlotManager
 
 class SimpleQLearning:
-    def __init__(self, actions, discount, featureExtractor, explorationProb = 0.2, weights = None):
+    def __init__(self, name, actions, discount, featureExtractor, explorationProb = 0.2, weights = None):
         """
         `actions` is the list of possible actions at any state
         `featureExtractor` takes a (state, action) and returns a feature dictionary
         `weights` is an optional file containing pre-computed weights
         """
+        self.name = name
         self.actions = actions
         self.discount = discount
         self.featureExtractor = featureExtractor
         self.explorationProb = explorationProb
         self.numIters = 0
-        self.plt_mgr = PlotManager(title="reward")
 
         if weights:
-            with open(weights, "rb") as fin:
-                print("Loading weights from file {}".format(weights))
-                weights_ = pickle.load(fin)
-                self.weights = defaultdict(float)
-                for k, v in weights_.iteritems():
-                    self.weights[k] = v
+            self.load(weights)
         else:
             self.weights = defaultdict(float)
+
+
+    def load(self, file_name):
+        """
+        Load weights from pickle file dict into the default dict
+        """
+        with open(file_name, "rb") as fin:
+            print("Loading weights from file {}".format(file_name))
+            weights_ = pickle.load(fin)
+            self.weights = defaultdict(float)
+            for k, v in weights_.iteritems():
+                self.weights[k] = v
+
+    def dump(self, file_name):
+        """
+        Dumps weights in pickle file dict
+        """
+        with open(file_name, "wb") as fout:
+            weights = dict(self.weights)
+            pickle.dump(weights, fout)
 
     def makeGreedy(self):
         """
@@ -45,6 +60,10 @@ class SimpleQLearning:
         for f, v in self.featureExtractor(state, action):
             score += self.weights[f] * v
         return score
+
+    def getPolicy(self):
+        self.makeGreedy()
+        return lambda s : self.getAction(s)
 
     def getAction(self, state):
         """
@@ -64,7 +83,8 @@ class SimpleQLearning:
         """
         Get the step size to update the weights.
         """
-        return 1.0 / math.sqrt(self.numIters)
+        return 0.1 
+        # return 1.0 / math.sqrt(self.numIters)
 
     def updateQ(self, state, action, reward, newState):
         if newState is None:
@@ -85,6 +105,7 @@ class SimpleQLearning:
         """
         Learn the weights by running simulations
         """
+        plt_mgr = PlotManager(title="reward")
         totalRewards = []  # The rewards we get on each trial
         for trial in xrange(num_trials):
             # init
@@ -108,25 +129,25 @@ class SimpleQLearning:
                 state = newState
 
             totalRewards.append(totalReward)
-            self.plt_mgr.add(name="reward", x=trial, y=totalReward)
-            self.plt_mgr.update()
+            plt_mgr.add(name="Task {}, Reward".format(self.name), x=trial, y=totalReward)
+            plt_mgr.update()
             print("Trial nb {}, total reward {}".format(trial, totalReward))
 
         print "Average reward:", sum(totalRewards)/num_trials
-        self.plt_mgr.close()
+        plt_mgr.export("plots")
+        plt_mgr.close(force=True)
         return totalRewards
 
 
 
 ############################################################
 
-def rl_policy(env, featureExtractor, num_trials=1, max_iter=10000, filename="weights.p", verbose = False, reload_weights=True, discount=1, explorationProb=0.1):
-    if reload_weights:
-        weights = filename
-    else:
-        weights = None
+def rl_train(name, env, featureExtractor, num_trials=1, max_iter=10000, filename="weights.p", verbose = False, reload_weights=True, discount=1, explorationProb=0.1):
+    weights = filename if reload_weights else None
     actions = range(env.action_space.n)
+
     rl = SimpleQLearning(
+        name, 
         actions, 
         discount=discount, 
         featureExtractor=featureExtractor, 
@@ -139,24 +160,20 @@ def rl_policy(env, featureExtractor, num_trials=1, max_iter=10000, filename="wei
         max_iter=max_iter, 
         verbose=verbose
         )
-    rl.makeGreedy()
-    policy = lambda s : rl.getAction(s)
 
-    # save learned weights
-    with open(filename, "wb") as fout:
-        weights = dict(rl.weights)
-        pickle.dump(weights, fout)
+    rl.dump("weights/"+filename)
     
-    return policy
+    return rl
 
-def load_policy(filename, env, featureExtractor, discount=1):
+def rl_load(name, filename, env, featureExtractor, discount=1):
     actions = range(env.action_space.n)
     rl = SimpleQLearning(
+        name, 
         actions, 
         discount=discount, 
         featureExtractor=featureExtractor, 
         explorationProb=0., 
         weights=filename
         )
-    policy = lambda s : rl.getAction(s)    
-    return policy
+     
+    return rl
