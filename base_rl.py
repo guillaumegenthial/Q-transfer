@@ -5,6 +5,7 @@ Reinforcement learning
 import random, math, pickle
 from collections import defaultdict
 from copy import deepcopy
+from streamplot import PlotManager
 
 class SimpleQLearning:
     def __init__(self, actions, discount, featureExtractor, explorationProb = 0.2, weights = None):
@@ -18,7 +19,8 @@ class SimpleQLearning:
         self.featureExtractor = featureExtractor
         self.explorationProb = explorationProb
         self.numIters = 0
-        
+        self.plt_mgr = PlotManager(title="reward")
+
         if weights:
             with open(weights, "rb") as fin:
                 print("Loading weights from file {}".format(weights))
@@ -106,21 +108,15 @@ class SimpleQLearning:
                 state = newState
 
             totalRewards.append(totalReward)
+            self.plt_mgr.add(name="reward", x=trial, y=totalReward)
+            self.plt_mgr.update()
             print("Trial nb {}, total reward {}".format(trial, totalReward))
 
         print "Average reward:", sum(totalRewards)/num_trials
+        self.plt_mgr.close()
         return totalRewards
 
 
-############################################################
-
-def simpleFeatures(state, action):
-    """
-    Return a list of (feature-name, value)
-    """
-    pos, vel = state
-    features = [((int(pos * 100), int(vel * 1000), action), 1), (('pos', int(pos * 100), action), 1), (('vel', int(vel * 1000), action), 1), (action, 1)]
-    return features
 
 ############################################################
 

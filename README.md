@@ -13,10 +13,10 @@ python setup.py develop
 cd ..
 ```
 
-## run test
+## run
 
 ```
-python test.py
+python main.py
 ```
 
 

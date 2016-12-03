@@ -97,6 +97,12 @@ class MountainCarEnv(gym.Env):
         """
         self.power = power
 
+    def set_task(self, modes=[("time", 1), ], slope=00025, speed=0.07, power=0.001):
+        self.set_reward_modes(modes)
+        self.set_slope(slope)
+        self.set_max_speed(speed)
+        self.set_power(power)
+        
     def _reward(self, position, velocity, done):
         modes = self.reward_modes
         reward = 0
@@ -106,7 +112,7 @@ class MountainCarEnv(gym.Env):
             elif mode == "energy":
                 reward += prop * - (velocity/self.max_speed)**2
             elif mode == "distance":
-                reward += prop * position - self.goal_position
+                reward += prop * (position - self.goal_position)
             elif mode == "center":
                 reward += prop * (position+0.52)**2
             elif mode == "height":
