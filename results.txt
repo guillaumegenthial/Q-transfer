@@ -1,4 +1,23 @@
-####################
-distance -189.532345899
-energy -0.0540894079894
-easy slope -500.0
+########## run 1 ##########
+distance -165.560934703
+energy -0.0278414881054
+easy slope -111.04
+more power -22.41
+standard -142.7
+full_target -225.728819088
+full_direct -260.977289914
+
+########## run 2 ##########
+full_target -224.638762845
+full_direct -266.31295006
+
+########## run 3 ##########
+full_target -226.893410075
+full_direct -174.644929429
+
+########## run 4 ##########
+full_target -230.533203573
+full_direct -258.324375657
+
+########## run 5 ##########
+full_target -219.673998892

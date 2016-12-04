@@ -7,6 +7,7 @@ from collections import defaultdict
 from copy import deepcopy
 from streamplot import PlotManager
 import env_interaction
+import sys
 
 class SimpleQLearning:
     def __init__(self, name, actions, discount, featureExtractor, explorationProb = 0.2, weights = None):
@@ -43,6 +44,7 @@ class SimpleQLearning:
         """
         Dumps weights in pickle file dict
         """
+        print("Saving weights to file {}".format(file_name))
         with open(file_name, "wb") as fout:
             weights = dict(self.weights)
             pickle.dump(weights, fout)
@@ -120,8 +122,8 @@ class SimpleQLearning:
                     if verbose: 
                         print("Episode finished after {} timesteps".format(it+1))
                     break
-                if verbose:
-                    env.render()
+                # if verbose:
+                #     env.render()
                 action = self.getAction(state)
                 newState, reward, done, info = env.step(action)
                 self.updateQ(state, action, reward, newState)
@@ -130,11 +132,14 @@ class SimpleQLearning:
                 state = newState
 
             totalRewards.append(totalReward)
+
+            # plotting and printing
             plt_mgr.add(name="Task {}, Reward".format(self.name), x=trial, y=totalReward)
             plt_mgr.update()
-            print("Trial nb {}, total reward {}".format(trial, totalReward))
+            sys.stdout.write("\rTrial nb {}, total reward {}".format(trial, totalReward))
+            sys.stdout.flush()
 
-        print "Average reward:", sum(totalRewards)/num_trials
+        print("\nAverage reward:", sum(totalRewards)/num_trials)
         plt_mgr.export("plots")
         plt_mgr.close(force=True)
         return totalRewards

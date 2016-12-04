@@ -60,11 +60,18 @@ class EnsembleQLearning(SimpleQLearning):
             v_opt = 0.
         target = reward + self.discount * v_opt
 
-        print self.coefs
         for i in xrange(self.n_sources):
             self.coefs[i] = self.coefs[i] - self.getStepSize() * (pred - target) * self.sources[i].evalQ(state, action)
 
+    def print_coefs(self):
+        pp = []
+        for i, source in enumerate(self.sources):
+            pp += ["%s: %.4f"% (source.name, self.coefs[i])]
+        print(", ".join(pp))
+
     def dump(self, file_name):
+        print("Saving coefs to file {}".format(file_name))
+        self.print_coefs()
         with open(file_name, "wb") as fout:
             pickle.dump(self.coefs, fout)
 
