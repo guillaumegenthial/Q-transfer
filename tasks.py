@@ -1,6 +1,6 @@
 # data of tasks
 
-TASKS = {
+SOURCES = {
 	"standard" : {
 	    "file_name" : "standard.p",
 	    "reward_modes" : [
@@ -71,34 +71,39 @@ TASKS = {
 	    "power" :0.001,
 	},
 
-	"center" : {
-	    "file_name" : "center.p",
-	    "reward_modes" : [
-	            ("time", 0),
-	            ("energy", 0),
-	            ("distance", 0),
-	            ("center", 1),
-	            ("height", 0)
-	            ],
-	    "slope": 0.0025,
-	    "max_speed": 0.07,
-	    "power" :0.001,
-	},
+	# "center" : {
+	#     "file_name" : "center.p",
+	#     "reward_modes" : [
+	#             ("time", 0),
+	#             ("energy", 0),
+	#             ("distance", 0),
+	#             ("center", 1),
+	#             ("height", 0)
+	#             ],
+	#     "slope": 0.0025,
+	#     "max_speed": 0.07,
+	#     "power" :0.001,
+	# },
 
-	"height" : {
-	    "file_name" : "height.p",
-	    "reward_modes" : [
-	            ("time", 0),
-	            ("energy", 0),
-	            ("distance", 0),
-	            ("center", 0),
-	            ("height", 1)
-	            ],
-	    "slope": 0.0025,
-	    "max_speed": 0.07,
-	    "power" :0.001,
-	},
+	# "height" : {
+	#     "file_name" : "height.p",
+	#     "reward_modes" : [
+	#             ("time", 0),
+	#             ("energy", 0),
+	#             ("distance", 0),
+	#             ("center", 0),
+	#             ("height", 1)
+	#             ],
+	#     "slope": 0.0025,
+	#     "max_speed": 0.07,
+	#     "power" :0.001,
+	# },
 
+	
+}
+
+
+TARGET = {
 	"full" : {
 	    "file_name" : "full.p",
 	    "reward_modes" : [

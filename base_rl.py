@@ -6,6 +6,7 @@ import random, math, pickle
 from collections import defaultdict
 from copy import deepcopy
 from streamplot import PlotManager
+import env_interaction
 
 class SimpleQLearning:
     def __init__(self, name, actions, discount, featureExtractor, explorationProb = 0.2, weights = None):
@@ -101,7 +102,7 @@ class SimpleQLearning:
         for k,v in phi:
             self.weights[k] = self.weights[k] - self.getStepSize() * (pred - target) * v
 
-    def train(self, env, num_trials = 100, max_iter = 1000, verbose=False):
+    def train(self, env, num_trials=100, max_iter=1000, verbose=False):
         """
         Learn the weights by running simulations
         """
@@ -167,13 +168,51 @@ def rl_train(name, env, featureExtractor, num_trials=1, max_iter=10000, filename
 
 def rl_load(name, filename, env, featureExtractor, discount=1):
     actions = range(env.action_space.n)
+
     rl = SimpleQLearning(
         name, 
         actions, 
         discount=discount, 
         featureExtractor=featureExtractor, 
         explorationProb=0., 
-        weights=filename
+        weights="weights/" + filename
         )
      
     return rl
+
+def train_task(env, name, param, num_trials, max_iter, verbose, reload_weights, discount, explorationProb):
+    """
+    perform task training
+
+    saves plot of performance during training in /plots
+    saves weights in /weights
+    writes policy evaluation in file result.txt
+    """
+    print("Task {}".format(name))
+    file_name = param["file_name"]
+    slope = param["slope"]
+    reward_modes = param["reward_modes"]
+    max_speed = param["max_speed"]
+    power = param["power"]
+
+    env.set_task(reward_modes, slope, max_speed, power)
+
+    rl = rl_train(
+        name, 
+        env, 
+        env_interaction.simpleFeatures(env), 
+        num_trials=num_trials, 
+        max_iter=max_iter,
+        filename=file_name, 
+        verbose=verbose,
+        reload_weights=reload_weights, 
+        discount=discount, 
+        explorationProb=explorationProb)
+
+    evaluation = env_interaction.policy_evaluation(
+        env, 
+        rl.getPolicy(), 
+        discount=discount)
+
+    with open("results.txt", "a") as f:
+        f.write("{} {}\n".format(name, evaluation))
