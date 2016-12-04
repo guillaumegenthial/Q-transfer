@@ -5,14 +5,16 @@ import tasks
 import ensemble_rl
 
 ENV = 'MountainCar-v0'
+N_SOURCES = 10
+TARGET_NAME = "target"
 VERBOSE = False
 EXPLORATION_PROBA = 0.2
 MAX_ITER = 1000
-NUM_TRIALS = 100
+NUM_TRIALS = 10
 RELOAD_WEIGHTS = False
 DISCOUNT = 1
 ELIGIBILITY = False
-TRAIN = True
+TRAIN = False
 
 if __name__ == "__main__":
     env = gym.make(ENV)
@@ -26,8 +28,12 @@ if __name__ == "__main__":
         f.write("#"*10 + " run {} ".format(run_no) + "#"*10 + "\n")
 
     # 1. train each source task separately
+    # SOURCES = tasks.SOURCES
+    # TARGET = tasks.TARGET
+    SOURCES, TARGET = tasks.generate_tasks(N_SOURCES)
+    
     if TRAIN:
-        for name, param in tasks.SOURCES.iteritems():
+        for name, param in SOURCES.iteritems():
             base_rl.train_task(
                 discreteExtractor=env_interaction.discreteExtractor(env), 
                 featureExtractor=env_interaction.simpleFeatures(env), 
@@ -47,7 +53,7 @@ if __name__ == "__main__":
 
     # 2. learn combination of tasks for full
     sources = []
-    for name, param in tasks.SOURCES.iteritems():
+    for name, param in SOURCES.iteritems():
         sources += [base_rl.rl_load(
             name=name,
             discreteExtractor=env_interaction.discreteExtractor(env), 
@@ -57,8 +63,7 @@ if __name__ == "__main__":
             discount=DISCOUNT
             )]
 
-    name = "full_energy"
-    param = tasks.TARGET[name]
+    param = TARGET[TARGET_NAME]
     file_name = param["file_name"]
     slope = param["slope"]
     reward_modes = param["reward_modes"]
@@ -69,7 +74,7 @@ if __name__ == "__main__":
 
     rl_ens = ensemble_rl.target_train(
         env, 
-        name, 
+        TARGET_NAME, 
         sources, 
         num_trials=10, 
         max_iter=1000, 
@@ -86,14 +91,14 @@ if __name__ == "__main__":
         discount=DISCOUNT)
 
     with open("results.txt", "a") as f:
-        f.write("{} {}\n".format(name+"_target", evaluation))
+        f.write("{} {}\n".format(TARGET_NAME+"_target", evaluation))
 
     # 3. compare with direct learning
     base_rl.train_task(
         discreteExtractor=env_interaction.discreteExtractor(env), 
         featureExtractor=env_interaction.simpleFeatures(env), 
         env=env, 
-        name=name+"_direct", 
+        name=TARGET_NAME+"_direct", 
         param=param, 
         num_trials=NUM_TRIALS, 
         max_iter=MAX_ITER, 
