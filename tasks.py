@@ -117,4 +117,18 @@ TARGET = {
 	    "max_speed": 0.07,
 	    "power" :0.001,
 	},
+
+	"full_energy" : {
+	    "file_name" : "full.p",
+	    "reward_modes" : [
+	            ("time", 1),
+	            ("energy", 100),
+	            ("distance", 1),
+	            ("center", 1),
+	            ("height", 1)
+	            ],
+	    "slope": 0.0025,
+	    "max_speed": 0.07,
+	    "power" :0.001,
+	},
 }

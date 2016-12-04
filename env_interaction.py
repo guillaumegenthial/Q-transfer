@@ -55,6 +55,25 @@ def discreteFeatures(env):
    
     return f
 
+def discreteExtractor(env):
+    def f(state, action):
+        pos, vel = state
+        r_pos = float(env.high[0] - env.low[0])
+        r_vel = float(env.high[1] - env.low[1])
+        pos_index = int((pos - env.low[0])/r_pos * 1000)
+        vel_index = int((vel - env.low[1])/r_vel * 1000)
+        features = (pos_index, vel_index, action)
+        return features
+
+    def fm1(features):
+        pos_index, vel_index, action = features
+        r_pos = float(env.high[0] - env.low[0])
+        r_vel = float(env.high[1] - env.low[1])
+        pos = pos_index/float(1000)*r_pos + env.low[0]
+        vel = vel_index/float(1000)*r_vel + env.low[1]
+        return np.array([pos, vel]), action
+
+    return f, fm1
 
 def simpleFeatures(env):
     """

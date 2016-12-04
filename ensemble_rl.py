@@ -10,7 +10,7 @@ from base_rl import SimpleQLearning
 import numpy as np
 
 class EnsembleQLearning(SimpleQLearning):
-    def __init__(self, name, sources, actions, discount, explorationProb = 0.2):
+    def __init__(self, name, sources, actions, discount, explorationProb = 0.2, eligibility=0.9):
         """
         `actions` is the list of possible actions at any state
         `sources` a list of source SimpleQLearning
@@ -23,6 +23,13 @@ class EnsembleQLearning(SimpleQLearning):
         self.explorationProb = explorationProb
         self.numIters = 0
         self.coefs = [1./self.n_sources] * self.n_sources
+        self.eligibility = eligibility
+
+    def progress(self, compute=False):
+        if compute:
+            return np.sum(np.square(self.coefs - self.coefs_bak))
+        else:
+            self.coefs_bak = deepcopy(self.coefs)
 
     def preliminaryCheck(self, state, action):
         sources = self.sources
@@ -38,6 +45,10 @@ class EnsembleQLearning(SimpleQLearning):
         self.n_sources -= len(index_to_remove)
         self.coefs = [1./self.n_sources] * self.n_sources
 
+    def normalize(self):
+        s = sum(self.coefs)
+        self.coefs /= s
+
     def evalQ(self, state, action):
         """
         Evaluate Q-function for a given (`state`, `action`)
@@ -48,20 +59,11 @@ class EnsembleQLearning(SimpleQLearning):
     def getStepSize(self):
         return 0.000001
 
-    def updateQ(self, state, action, reward, newState):
-        if newState is None:
-            return
-        
-        pred = self.evalQ(state, action)
-        try:
-            v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
-        except:
-            print "error"
-            v_opt = 0.
-        target = reward + self.discount * v_opt
-
+    def updateQ(self, state, action, gradient):
         for i in xrange(self.n_sources):
-            self.coefs[i] = self.coefs[i] - self.getStepSize() * (pred - target) * self.sources[i].evalQ(state, action)
+            self.coefs[i] = self.coefs[i] - self.getStepSize() * gradient * self.sources[i].evalQ(state, action)
+
+        self.normalize()
 
     def print_coefs(self):
         pp = []

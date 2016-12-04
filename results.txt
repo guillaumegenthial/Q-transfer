@@ -21,3 +21,126 @@ full_direct -258.324375657
 
 ########## run 5 ##########
 full_target -219.673998892
+full_direct -216.658292025
+
+########## run 6 ##########
+distance -126.004105572
+energy -0.0322752151482
+easy slope -95.79
+more power -22.35
+standard -167.7
+full_target -191.027463331
+full_direct -251.809369779
+
+########## run 7 ##########
+full_target -198.355181881
+full_direct -272.9049872
+
+########## run 8 ##########
+full_target -201.225356679
+full_direct -205.577986879
+
+########## run 9 ##########
+full_target -190.810510263
+full_direct -180.277206283
+
+########## run 10 ##########
+full_energy_target -2358.3548835
+full_energy_direct -3308.32424929
+
+########## run 11 ##########
+distance -404.154655577
+energy -0.0359401341928
+easy slope -163.27
+
+########## run 12 ##########
+more power -22.29
+standard -186.52
+########## run 13 ##########
+########## run 14 ##########
+distance -317.135927972
+energy -0.0341785247545
+easy slope -158.84
+more power -46.28
+standard -500.0
+########## run 15 ##########
+distance -294.625429972
+energy -0.0173797098775
+easy slope -115.36
+more power -500.0
+standard -276.69
+########## run 16 ##########
+########## run 17 ##########
+full_energy_target -1977.78780567
+########## run 18 ##########
+full_energy_target -1922.16262181
+########## run 19 ##########
+########## run 20 ##########
+########## run 21 ##########
+full_energy_target -1941.87984658
+########## run 22 ##########
+full_energy_target -1925.46980545
+########## run 23 ##########
+distance -302.064459198
+energy -0.0238914812201
+easy slope -245.74
+more power -35.72
+standard -439.31
+full_energy_target -2447.35681268
+full_energy_direct -3635.9346563
+
+########## run 24 ##########
+distance -341.407217339
+energy -0.036395456342
+easy slope -139.53
+more power -26.92
+standard -454.48
+full_energy_target -2348.72283723
+########## run 25 ##########
+########## run 26 ##########
+########## run 27 ##########
+########## run 28 ##########
+########## run 29 ##########
+########## run 30 ##########
+########## run 31 ##########
+########## run 32 ##########
+########## run 33 ##########
+########## run 34 ##########
+########## run 35 ##########
+########## run 36 ##########
+########## run 37 ##########
+########## run 38 ##########
+########## run 39 ##########
+########## run 40 ##########
+########## run 41 ##########
+########## run 42 ##########
+########## run 43 ##########
+distance -390.641735711
+energy -0.0170406631164
+easy slope -173.21
+more power -30.83
+standard -234.43
+full_energy_target -1915.59231852
+########## run 44 ##########
+distance -207.665521266
+energy -0.0384426568666
+########## run 45 ##########
+distance -308.697272584
+energy -0.0633466209059
+easy slope -500.0
+########## run 46 ##########
+distance -391.954137375
+energy -0.0397158824304
+easy slope -245.14
+more power -85.0
+standard -268.38
+full_energy_target -2072.16776212
+########## run 47 ##########
+distance -309.573525327
+energy -0.0340088139497
+easy slope -404.5
+more power -37.03
+standard -229.47
+full_energy_target -2568.16064029
+full_energy_direct -4170.07736781
+

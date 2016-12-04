@@ -8,10 +8,11 @@ ENV = 'MountainCar-v0'
 VERBOSE = False
 EXPLORATION_PROBA = 0.2
 MAX_ITER = 1000
-NUM_TRIALS = 5000
+NUM_TRIALS = 100
 RELOAD_WEIGHTS = False
 DISCOUNT = 1
-TRAIN = False
+ELIGIBILITY = False
+TRAIN = True
 
 if __name__ == "__main__":
     env = gym.make(ENV)
@@ -28,15 +29,18 @@ if __name__ == "__main__":
     if TRAIN:
         for name, param in tasks.SOURCES.iteritems():
             base_rl.train_task(
-                env, 
-                name, 
-                param, 
-                NUM_TRIALS, 
-                MAX_ITER, 
-                VERBOSE, 
-                RELOAD_WEIGHTS, 
-                DISCOUNT, 
-                EXPLORATION_PROBA)
+                discreteExtractor=env_interaction.discreteExtractor(env), 
+                featureExtractor=env_interaction.simpleFeatures(env), 
+                env=env, 
+                name=name, 
+                param=param, 
+                num_trials=NUM_TRIALS, 
+                max_iter=MAX_ITER, 
+                verbose=VERBOSE, 
+                reload_weights=RELOAD_WEIGHTS, 
+                discount=DISCOUNT, 
+                explorationProb=EXPLORATION_PROBA,
+                eligibility=ELIGIBILITY)
 
             # env_interaction.plotQ(env, rl.evalQ)
             # env_interaction.play(env, rl.getPolicy())
@@ -45,14 +49,15 @@ if __name__ == "__main__":
     sources = []
     for name, param in tasks.SOURCES.iteritems():
         sources += [base_rl.rl_load(
-            name,
-            param["file_name"], 
-            env, 
-            env_interaction.simpleFeatures(env),
+            name=name,
+            discreteExtractor=env_interaction.discreteExtractor(env), 
+            featureExtractor=env_interaction.simpleFeatures(env),
+            filename=param["file_name"], 
+            env=env, 
             discount=DISCOUNT
             )]
 
-    name = "full"
+    name = "full_energy"
     param = tasks.TARGET[name]
     file_name = param["file_name"]
     slope = param["slope"]
@@ -76,8 +81,8 @@ if __name__ == "__main__":
         )
 
     evaluation = env_interaction.policy_evaluation(
-        env, 
-        rl_ens.getPolicy(), 
+        env=env, 
+        policy=rl_ens.getPolicy(), 
         discount=DISCOUNT)
 
     with open("results.txt", "a") as f:
@@ -85,15 +90,18 @@ if __name__ == "__main__":
 
     # 3. compare with direct learning
     base_rl.train_task(
-        env, 
-        name+"_direct", 
-        param, 
-        NUM_TRIALS, 
-        MAX_ITER, 
-        VERBOSE, 
-        RELOAD_WEIGHTS, 
-        DISCOUNT, 
-        EXPLORATION_PROBA)
+        discreteExtractor=env_interaction.discreteExtractor(env), 
+        featureExtractor=env_interaction.simpleFeatures(env), 
+        env=env, 
+        name=name+"_direct", 
+        param=param, 
+        num_trials=NUM_TRIALS, 
+        max_iter=MAX_ITER, 
+        verbose=VERBOSE, 
+        reload_weights=RELOAD_WEIGHTS, 
+        discount=DISCOUNT, 
+        explorationProb=EXPLORATION_PROBA,
+        eligibility=False)
 
     with open("results.txt", "a") as f:
         f.write("\n")
