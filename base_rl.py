@@ -57,17 +57,21 @@ class SimpleQLearning:
         else:
             stores a snapshot of the weights in weigts.bak
         """
-        if compute:
-            progress = 0
-            for k, v in self.weights.iteritems():
-                try:
-                    progress += (self.weights_bak[k] - v)**2
-                except Exception, e:
-                    progress += v**2
+        try:
+            if compute:
+                progress = 0
+                for k, v in self.weights.iteritems():
+                    try:
+                        progress += (self.weights_bak[k] - v)**2
+                    except Exception, e:
+                        progress += v**2
 
-            return progress
-        else:
-            self.weights_bak = deepcopy(self.weights)
+                return progress
+            else:
+                self.weights_bak = deepcopy(self.weights)
+        
+        except Exception, e:
+            pass
 
 
     def load(self, file_name):
