@@ -8,14 +8,15 @@ import deep_rl
 ENV = 'MountainCar-v0'
 N_SOURCES = 10
 TARGET_NAME = "full"
-VERBOSE = True
+VERBOSE = False
 EXPLORATION_PROBA = 0.2
 MAX_ITER = 1000
-NUM_TRIALS = 100
+NUM_TRIALS = 300
 RELOAD_WEIGHTS = False
 DISCOUNT = 1
 ELIGIBILITY = False
-TRAIN = True
+TRAIN = False
+DEEP_MODE = 1
 
 if __name__ == "__main__":
     env = gym.make(ENV)
@@ -56,14 +57,15 @@ if __name__ == "__main__":
     # 2. learn combination of tasks for full
     sources = []
     for name, param in SOURCES.iteritems():
-        sources += [base_rl.rl_load(
-            name=name,
-            discreteExtractor=env_interaction.discreteExtractor(env), 
-            featureExtractor=env_interaction.simpleFeatures(env),
-            filename=param["file_name"], 
-            env=env, 
-            discount=DISCOUNT
-            )]
+        sources += [base_rl.SimpleQLearning(
+        name=name, 
+        actions=range(env.action_space.n), 
+        discount=DISCOUNT, 
+        discreteExtractor=env_interaction.discreteExtractor(env), 
+        featureExtractor=env_interaction.simpleFeatures(env), 
+        explorationProb=0., 
+        weights="weights/" + param["file_name"]
+        )]
 
     param = TARGET[TARGET_NAME]
     file_name = param["file_name"]
@@ -106,11 +108,12 @@ if __name__ == "__main__":
         sources, 
         num_trials=NUM_TRIALS, 
         max_iter=MAX_ITER, 
-        filename="weights.p", 
+        filename="params_deep.p", 
         verbose = VERBOSE, 
         reload_weights=RELOAD_WEIGHTS, 
         discount=DISCOUNT, 
-        explorationProb=EXPLORATION_PROBA
+        explorationProb=EXPLORATION_PROBA,
+        mode=DEEP_MODE
         )
 
     evaluation = env_interaction.policy_evaluation(
@@ -129,7 +132,7 @@ if __name__ == "__main__":
         sources, 
         num_trials=NUM_TRIALS, 
         max_iter=MAX_ITER, 
-        filename="weights.p", 
+        filename="coefs.p", 
         verbose = VERBOSE, 
         reload_weights=RELOAD_WEIGHTS, 
         discount=DISCOUNT, 

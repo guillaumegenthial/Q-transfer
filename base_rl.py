@@ -245,7 +245,8 @@ def rl_train(
     discount=1, 
     explorationProb=0.1, 
     eligibility=False):
-
+    
+    filename = "weights/"+filename
     weights = filename if reload_weights else None
     actions = range(env.action_space.n)
 
@@ -266,23 +267,8 @@ def rl_train(
         eligibility=eligibility,
         )
 
-    rl.dump("weights/"+filename)
+    rl.dump(filename)
     
-    return rl
-
-def rl_load(name, discreteExtractor, featureExtractor, filename, env, discount=1):
-    actions = range(env.action_space.n)
-
-    rl = SimpleQLearning(
-        name=name, 
-        actions=actions, 
-        discount=discount, 
-        discreteExtractor=discreteExtractor, 
-        featureExtractor=featureExtractor, 
-        explorationProb=0., 
-        weights="weights/" + filename
-        )
-     
     return rl
 
 def train_task(
