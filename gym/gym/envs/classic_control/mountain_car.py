@@ -30,7 +30,7 @@ Use :
         ("height", 0),
         ("still", 0)
         ], 
-        slope=00025, 
+        slope=0.0025, 
         speed=0.07, 
         power=0.001, 
         min_position=-1.2,
@@ -92,7 +92,7 @@ class MountainCarEnv(gym.Env):
         ("height", 0),
         ("still", 0)
         ], 
-        slope=00025, 
+        slope=0.0025, 
         speed=0.07, 
         power=0.001, 
         min_position=-1.2,
