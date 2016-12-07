@@ -103,7 +103,7 @@ def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weight
         sources=sources, 
         actions=range(env.action_space.n), 
         discount=discount,
-        weights=weights
+        weights=weights,
         explorationProb=explorationProb,
         eligibility=eligibility
     )
