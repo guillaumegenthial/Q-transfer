@@ -232,7 +232,7 @@ class DeepQTransfer(SimpleQLearning):
 
 ####################################################
 
-def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weights.p", verbose=False, reload_weights=True, discount=1, explorationProb=0.1, mode=0):
+def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weights.p", verbose=False, reload_weights=True, discount=1, explorationProb=0.1, eligibility=False):
     filename = "weights/"+filename
     weights = filename if reload_weights else None
     actions = range(env.action_space.n)
@@ -244,7 +244,9 @@ def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weight
         discount=discount, 
         weights=weights,
         mode=mode,
-        )
+        explorationProb=explorationProb,
+        eligibility=eligibility
+    )
 
     rl_deep.add_Q()
 
@@ -253,7 +255,7 @@ def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weight
         num_trials=num_trials, 
         max_iter=max_iter, 
         verbose=verbose
-        )
+    )
 
     rl_deep.dump(filename)
 

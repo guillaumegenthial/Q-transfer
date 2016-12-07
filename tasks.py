@@ -182,7 +182,7 @@ TARGET = {
     },
 
     "full_energy" : {
-        "file_name" : "full.p",
+        "file_name" : "full_energy.p",
         "reward_modes" : [
                 ("time", 1),
                 ("energy", 100),

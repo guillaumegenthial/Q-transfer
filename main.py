@@ -11,6 +11,7 @@ TARGET_NAME = "full"
 VERBOSE = False
 EXPLORATION_PROBA = 0.2
 MAX_ITER = 1000
+NUM_TRIALS_SOURCES = 300
 NUM_TRIALS = 300
 RELOAD_WEIGHTS = False
 DISCOUNT = 1
@@ -28,6 +29,7 @@ if __name__ == "__main__":
 
     with open("results.txt", "a") as f:
         f.write("#"*10 + " run {} ".format(run_no) + "#"*10 + "\n")
+    print "#"*10 + " run {} ".format(run_no) + "#"*10
 
     # 1. train each source task separately
     # SOURCES = tasks.SOURCES
@@ -43,29 +45,29 @@ if __name__ == "__main__":
                 env=env, 
                 name=name, 
                 param=param, 
-                num_trials=NUM_TRIALS, 
+                num_trials=NUM_TRIALS_SOURCES, 
                 max_iter=MAX_ITER, 
                 verbose=VERBOSE, 
                 reload_weights=RELOAD_WEIGHTS, 
                 discount=DISCOUNT, 
                 explorationProb=EXPLORATION_PROBA,
-                eligibility=ELIGIBILITY)
-
+                eligibility=ELIGIBILITY
+            )
             # env_interaction.plotQ(env, rl.evalQ)
             # env_interaction.play(env, rl.getPolicy())
 
     # 2. learn combination of tasks for full
     sources = []
     for name, param in SOURCES.iteritems():
-        sources += [base_rl.SimpleQLearning(
-        name=name, 
-        actions=range(env.action_space.n), 
-        discount=DISCOUNT, 
-        discreteExtractor=env_interaction.discreteExtractor(env), 
-        featureExtractor=env_interaction.simpleFeatures(env), 
-        explorationProb=0., 
-        weights="weights/" + param["file_name"]
-        )]
+            sources.append(base_rl.SimpleQLearning(
+            name=name, 
+            actions=range(env.action_space.n), 
+            discount=DISCOUNT, 
+            discreteExtractor=env_interaction.discreteExtractor(env), 
+            featureExtractor=env_interaction.simpleFeatures(env), 
+            explorationProb=0., 
+            weights="weights/" + param["file_name"]
+        ))
 
     param = TARGET[TARGET_NAME]
     file_name = param["file_name"]
@@ -101,7 +103,7 @@ if __name__ == "__main__":
 
     ##################################################
     ########## NEURAL NETWORK IMPLEMENTATION #########
-
+    print "\nDeep transfer"
     rl_deep = deep_rl.target_train(
         env, 
         TARGET_NAME, 
@@ -113,19 +115,24 @@ if __name__ == "__main__":
         reload_weights=RELOAD_WEIGHTS, 
         discount=DISCOUNT, 
         explorationProb=EXPLORATION_PROBA,
+        eligibility=False,
         mode=DEEP_MODE
-        )
+    )
 
     evaluation = env_interaction.policy_evaluation(
         env=env, 
         policy=rl_deep.getPolicy(), 
-        discount=DISCOUNT)
+        discount=DISCOUNT,
+        num_trials=1000,
+        max_iter=MAX_ITER
+    )
 
     with open("results.txt", "a") as f:
         f.write("{} {}\n".format(TARGET_NAME+"_target_deep", evaluation))
 
 
     ##################################################
+    print "\nLinear transfer"
     rl_ens = ensemble_rl.target_train(
         env, 
         TARGET_NAME, 
@@ -136,16 +143,20 @@ if __name__ == "__main__":
         verbose = VERBOSE, 
         reload_weights=RELOAD_WEIGHTS, 
         discount=DISCOUNT, 
-        explorationProb=EXPLORATION_PROBA
-        )
+        explorationProb=EXPLORATION_PROBA,
+        eligibility=False
+    )
 
     evaluation = env_interaction.policy_evaluation(
         env=env, 
         policy=rl_ens.getPolicy(), 
-        discount=DISCOUNT)
+        discount=DISCOUNT,
+        num_trials=1000,
+        max_iter=MAX_ITER
+    )
 
     with open("results.txt", "a") as f:
-        f.write("{} {}\n".format(TARGET_NAME+"_target", evaluation))
+        f.write("{} {}\n".format(TARGET_NAME+"_target_linear", evaluation))
 
     # 3. compare with direct learning
     base_rl.train_task(
@@ -160,7 +171,8 @@ if __name__ == "__main__":
         reload_weights=RELOAD_WEIGHTS, 
         discount=DISCOUNT, 
         explorationProb=EXPLORATION_PROBA,
-        eligibility=False)
+        eligibility=False
+    )
 
     with open("results.txt", "a") as f:
         f.write("\n")

@@ -59,14 +59,8 @@ class SimpleQLearning:
         """
         try:
             if compute:
-                progress = 0
-                for k, v in self.weights.iteritems():
-                    try:
-                        progress += (self.weights_bak[k] - v)**2
-                    except Exception, e:
-                        progress += v**2
+                return max(abs(self.weights_bak.get(k, 0.) - v) for k,v in self.weights.iteritems())
 
-                return progress
             else:
                 self.weights_bak = deepcopy(self.weights)
         
@@ -291,7 +285,7 @@ def train_task(
     saves weights in /weights
     writes policy evaluation in file result.txt
     """
-    print("Task {}".format(name))
+    print("\nTask {}".format(name))
     file_name = param["file_name"]
     slope = param["slope"]
     reward_modes = param["reward_modes"]
@@ -319,7 +313,10 @@ def train_task(
     evaluation = env_interaction.policy_evaluation(
         env=env, 
         policy=rl.getPolicy(), 
-        discount=discount)
+        discount=discount,
+        num_trials=1000,
+        max_iter=max_iter
+    )
 
 
     with open("results.txt", "a") as f:
