@@ -240,7 +240,7 @@ def rl_train(
     explorationProb=0.1, 
     eligibility=False):
     
-    filename = "weights/"+filename
+    filename = "weights/{}{}.p".format(filename[:-2], num_trials)
     weights = filename if reload_weights else None
     actions = range(env.action_space.n)
 
@@ -283,7 +283,7 @@ def train_task(
 
     saves plot of performance during training in /plots
     saves weights in /weights
-    writes policy evaluation in file result.txt
+    return policy evaluation
     """
     print("\nTask {}".format(name))
     file_name = param["file_name"]
@@ -310,7 +310,7 @@ def train_task(
 
     rl.normalize()
 
-    evaluation = env_interaction.policy_evaluation(
+    evaluation, se = env_interaction.policy_evaluation(
         env=env, 
         policy=rl.getPolicy(), 
         discount=discount,
@@ -318,6 +318,4 @@ def train_task(
         max_iter=max_iter
     )
 
-
-    with open("results.txt", "a") as f:
-        f.write("{} {}\n".format(name, evaluation))
+    return evaluation, se

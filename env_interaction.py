@@ -1,5 +1,6 @@
 import gym
 import numpy as np
+import math
 
 def rollout(env, policy, discount=1, max_iter = 500):
     """
@@ -33,12 +34,13 @@ def policy_evaluation(env, policy, discount=1, num_trials=100, max_iter=500):
     """
     Simulate many trials to evaluate `policy`
     """
-    r = 0.
+    r = []
     for _ in xrange(num_trials):
         env.reset()
-        r += rollout(env, policy, discount, max_iter)
-    print("Policy evaluation : {}".format(r/num_trials))
-    return r/num_trials
+        r.append(rollout(env, policy, discount, max_iter))
+    avg, se = np.mean(r), np.std(r)/math.sqrt(num_trials)
+    print "Policy evaluation : {}\t+/-{}".format(avg, se)
+    return avg, se
 
 def discreteFeatures(env):
     """

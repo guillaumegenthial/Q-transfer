@@ -1,3 +1,4 @@
+import sys, json
 import gym
 import base_rl
 import env_interaction
@@ -5,31 +6,32 @@ import tasks
 import ensemble_rl
 import deep_rl
 
-ENV = 'MountainCar-v0'
-N_SOURCES = 10
-TARGET_NAME = "full"
-VERBOSE = False
-EXPLORATION_PROBA = 0.2
-MAX_ITER = 1000
-NUM_TRIALS_SOURCES = 300
-NUM_TRIALS = 300
-RELOAD_WEIGHTS = False
-DISCOUNT = 1
-ELIGIBILITY = False
-TRAIN = False
-DEEP_MODE = 1
+
 
 if __name__ == "__main__":
-    env = gym.make(ENV)
-    with open("results.txt", "r") as f:
-        run_no = 1
-        for line in f:
-            if line[0] == "#":
-                run_no += 1
+    if len(sys.argv) > 1:
+        config = __import__(sys.argv[1].replace(".py", ""))
+    else:
+        config = __import__("config")
 
-    with open("results.txt", "a") as f:
-        f.write("#"*10 + " run {} ".format(run_no) + "#"*10 + "\n")
-    print "#"*10 + " run {} ".format(run_no) + "#"*10
+    EXP_NAME            = config.EXP_NAME
+    ENV                 = config.ENV
+    N_SOURCES           = config.N_SOURCES
+    TARGET_NAME         = config.TARGET_NAME
+    VERBOSE             = config.VERBOSE
+    EXPLORATION_PROBA   = config.EXPLORATION_PROBA
+    MAX_ITER            = config.MAX_ITER
+    NUM_TRIALS_SOURCES  = config.NUM_TRIALS_SOURCES
+    NUM_TRIALS_EVAL     = config.NUM_TRIALS_EVAL
+    NUM_TRIALS          = config.NUM_TRIALS
+    RELOAD_WEIGHTS      = config.RELOAD_WEIGHTS
+    DISCOUNT            = config.DISCOUNT
+    ELIGIBILITY         = config.ELIGIBILITY
+    TRAIN               = config.TRAIN
+    DEEP_MODE           = config.DEEP_MODE
+
+    env = gym.make(config.ENV)
+    fout = open("results/{}.txt".format(EXP_NAME), "wb")
 
     # 1. train each source task separately
     # SOURCES = tasks.SOURCES
@@ -39,7 +41,7 @@ if __name__ == "__main__":
     
     if TRAIN:
         for name, param in SOURCES.iteritems():
-            base_rl.train_task(
+            evaluation, se = base_rl.train_task(
                 discreteExtractor=env_interaction.discreteExtractor(env), 
                 featureExtractor=env_interaction.simpleFeatures(env), 
                 env=env, 
@@ -53,20 +55,21 @@ if __name__ == "__main__":
                 explorationProb=EXPLORATION_PROBA,
                 eligibility=ELIGIBILITY
             )
+            fout.write("{}\t{}\t+/-{}\n".format(name, evaluation, se))
             # env_interaction.plotQ(env, rl.evalQ)
             # env_interaction.play(env, rl.getPolicy())
 
     # 2. learn combination of tasks for full
     sources = []
     for name, param in SOURCES.iteritems():
-            sources.append(base_rl.SimpleQLearning(
+        sources.append(base_rl.SimpleQLearning(
             name=name, 
             actions=range(env.action_space.n), 
             discount=DISCOUNT, 
             discreteExtractor=env_interaction.discreteExtractor(env), 
             featureExtractor=env_interaction.simpleFeatures(env), 
             explorationProb=0., 
-            weights="weights/" + param["file_name"]
+            weights="weights/{}{}.p".format(param["file_name"][:-2], NUM_TRIALS_SOURCES)
         ))
 
     param = TARGET[TARGET_NAME]
@@ -102,79 +105,94 @@ if __name__ == "__main__":
 
 
     ##################################################
-    ########## NEURAL NETWORK IMPLEMENTATION #########
-    print "\nDeep transfer"
-    rl_deep = deep_rl.target_train(
-        env, 
-        TARGET_NAME, 
-        sources, 
-        num_trials=NUM_TRIALS, 
-        max_iter=MAX_ITER, 
-        filename="params_deep.p", 
-        verbose = VERBOSE, 
-        reload_weights=RELOAD_WEIGHTS, 
-        discount=DISCOUNT, 
-        explorationProb=EXPLORATION_PROBA,
-        eligibility=False,
-        mode=DEEP_MODE
-    )
 
-    evaluation = env_interaction.policy_evaluation(
-        env=env, 
-        policy=rl_deep.getPolicy(), 
-        discount=DISCOUNT,
-        num_trials=1000,
-        max_iter=MAX_ITER
-    )
+    # Train on target with different values of num_trials
+    for num_trials in NUM_TRIALS:
+        fout.write("# learning trials: {}\n".format(num_trials))
+        print "\n\n{} trials".format(num_trials)
 
-    with open("results.txt", "a") as f:
-        f.write("{} {}\n".format(TARGET_NAME+"_target_deep", evaluation))
+        ########## NEURAL NETWORK IMPLEMENTATION #########
+        print "\nDeep transfer"
+        rl_deep = deep_rl.target_train(
+            env, 
+            TARGET_NAME, 
+            sources, 
+            num_trials=num_trials, 
+            max_iter=MAX_ITER, 
+            filename="params_deep.p", 
+            verbose=VERBOSE, 
+            reload_weights=RELOAD_WEIGHTS, 
+            discount=DISCOUNT, 
+            explorationProb=EXPLORATION_PROBA,
+            eligibility=False,
+            mode=DEEP_MODE
+        )
+
+        evaluation, se = env_interaction.policy_evaluation(
+            env=env, 
+            policy=rl_deep.getPolicy(), 
+            discount=DISCOUNT,
+            num_trials=NUM_TRIALS_EVAL,
+            max_iter=MAX_ITER
+        )
+
+        fout.write("\t{}\t{}\t+/-{}\n".format(TARGET_NAME+"_target_deep", evaluation, se))
 
 
-    ##################################################
-    print "\nLinear transfer"
-    rl_ens = ensemble_rl.target_train(
-        env, 
-        TARGET_NAME, 
-        sources, 
-        num_trials=NUM_TRIALS, 
-        max_iter=MAX_ITER, 
-        filename="coefs.p", 
-        verbose = VERBOSE, 
-        reload_weights=RELOAD_WEIGHTS, 
-        discount=DISCOUNT, 
-        explorationProb=EXPLORATION_PROBA,
-        eligibility=False
-    )
+        ##################################################
+        print "\nLinear transfer"
+        rl_ens = ensemble_rl.target_train(
+            env, 
+            TARGET_NAME, 
+            sources, 
+            num_trials=num_trials, 
+            max_iter=MAX_ITER, 
+            filename="coefs.p", 
+            verbose = VERBOSE, 
+            reload_weights=RELOAD_WEIGHTS, 
+            discount=DISCOUNT, 
+            explorationProb=EXPLORATION_PROBA,
+            eligibility=False
+        )
+        print "coefs", rl_ens.coefs
+        evaluation, se = env_interaction.policy_evaluation(
+            env=env, 
+            policy=rl_ens.getPolicy(), 
+            discount=DISCOUNT,
+            num_trials=NUM_TRIALS_EVAL,
+            max_iter=MAX_ITER
+        )
 
-    evaluation = env_interaction.policy_evaluation(
-        env=env, 
-        policy=rl_ens.getPolicy(), 
-        discount=DISCOUNT,
-        num_trials=1000,
-        max_iter=MAX_ITER
-    )
+        fout.write("\t{}\t{}\t+/-{}\n".format(TARGET_NAME+"_target_linear", evaluation, se))
 
-    with open("results.txt", "a") as f:
-        f.write("{} {}\n".format(TARGET_NAME+"_target_linear", evaluation))
+        # 3. compare with direct learning
+        evaluation, se = base_rl.train_task(
+            discreteExtractor=env_interaction.discreteExtractor(env), 
+            featureExtractor=env_interaction.simpleFeatures(env), 
+            env=env, 
+            name=TARGET_NAME+"_direct", 
+            param=param, 
+            num_trials=num_trials, 
+            max_iter=MAX_ITER, 
+            verbose=VERBOSE, 
+            reload_weights=RELOAD_WEIGHTS, 
+            discount=DISCOUNT, 
+            explorationProb=EXPLORATION_PROBA,
+            eligibility=False
+        )
 
-    # 3. compare with direct learning
-    base_rl.train_task(
-        discreteExtractor=env_interaction.discreteExtractor(env), 
-        featureExtractor=env_interaction.simpleFeatures(env), 
-        env=env, 
-        name=TARGET_NAME+"_direct", 
-        param=param, 
-        num_trials=NUM_TRIALS, 
-        max_iter=MAX_ITER, 
-        verbose=VERBOSE, 
-        reload_weights=RELOAD_WEIGHTS, 
-        discount=DISCOUNT, 
-        explorationProb=EXPLORATION_PROBA,
-        eligibility=False
-    )
+        fout.write("\t{}_direct\t{}\t+/-{}\n\n".format(TARGET_NAME, evaluation, se))
 
-    with open("results.txt", "a") as f:
-        f.write("\n")
+
+    # save config parameters
+    fout.write("\nConfig:\n" + "\n".join(
+        ["{}\t\t{}".format(k,v) for k,v in config.__dict__.iteritems() if not k.startswith('__')]
+    ))
+
+    # save sources and target
+    fout.write("\n\nTarget:\n" + json.dumps(param, indent=4))
+    fout.write("\n\nSources:\n" + json.dumps(SOURCES, indent=4))
+
+    fout.close()
 
 

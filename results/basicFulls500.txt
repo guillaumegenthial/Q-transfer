@@ -1,0 +1,226 @@
+distance	-131.497894544	+/-2.37351133543
+energy	0.0	+/-0.0
+easy slope	-106.503333333	+/-1.20189201154
+more power	-22.6266666667	+/-0.0439932654779
+standard	-169.95	+/-2.21472910307
+# learning trials: 20
+	full_target_deep	-484.97076076	+/-0.82202474032
+	full_target_linear	-533.571226908	+/-2.05418828752
+	full_direct	-1959.1401072	+/-1.59102471985
+
+# learning trials: 50
+	full_target_deep	-485.204800142	+/-0.863155164827
+	full_target_linear	-529.77360499	+/-2.08873777266
+	full_direct	-2919.2581106	+/-0.896002832384
+
+# learning trials: 100
+	full_target_deep	-485.398440714	+/-0.850732545915
+	full_target_linear	-530.49393228	+/-2.12316244659
+	full_direct	-1315.0927719	+/-34.2369696264
+
+# learning trials: 150
+	full_target_deep	-484.451527071	+/-0.777141790108
+	full_target_linear	-527.994412876	+/-2.13107657872
+	full_direct	-1231.98535551	+/-57.1560928898
+
+# learning trials: 200
+	full_target_deep	-484.387075892	+/-0.832096498029
+	full_target_linear	-531.713285608	+/-2.05067390173
+	full_direct	-1434.83530552	+/-34.4414712447
+
+# learning trials: 300
+	full_target_deep	-483.147090649	+/-0.789100405543
+	full_target_linear	-530.351503513	+/-2.10945970077
+	full_direct	-690.211541722	+/-31.4443493705
+
+
+Config:
+N_SOURCES		10
+RELOAD_WEIGHTS		False
+VERBOSE		False
+DISCOUNT		1
+EXP_NAME		basicFulls500
+MAX_ITER		1000
+EXPLORATION_PROBA		0.2
+TARGET_NAME		full
+NUM_TRIALS		[20, 50, 100, 150, 200, 300]
+TRAIN		True
+ENV		MountainCar-v0
+NUM_TRIALS_SOURCES		500
+ELIGIBILITY		False
+DEEP_MODE		1
+NUM_TRIALS_EVAL		2000
+
+Target:
+{
+    "slope": 0.0025, 
+    "file_name": "full.p", 
+    "max_speed": 0.07, 
+    "reward_modes": [
+        [
+            "time", 
+            1
+        ], 
+        [
+            "energy", 
+            1
+        ], 
+        [
+            "distance", 
+            1
+        ], 
+        [
+            "center", 
+            1
+        ], 
+        [
+            "height", 
+            1
+        ]
+    ], 
+    "power": 0.001
+}
+
+Sources:
+{
+    "distance": {
+        "slope": 0.0025, 
+        "file_name": "distance.p", 
+        "max_speed": 0.07, 
+        "reward_modes": [
+            [
+                "time", 
+                0
+            ], 
+            [
+                "energy", 
+                0
+            ], 
+            [
+                "distance", 
+                1
+            ], 
+            [
+                "center", 
+                0
+            ], 
+            [
+                "height", 
+                0
+            ]
+        ], 
+        "power": 0.001
+    }, 
+    "energy": {
+        "slope": 0.0025, 
+        "file_name": "energy.p", 
+        "max_speed": 0.07, 
+        "reward_modes": [
+            [
+                "time", 
+                0
+            ], 
+            [
+                "energy", 
+                1
+            ], 
+            [
+                "distance", 
+                0
+            ], 
+            [
+                "center", 
+                0
+            ], 
+            [
+                "height", 
+                0
+            ]
+        ], 
+        "power": 0.001
+    }, 
+    "easy slope": {
+        "slope": 0.0015, 
+        "file_name": "easy.p", 
+        "max_speed": 0.07, 
+        "reward_modes": [
+            [
+                "time", 
+                1
+            ], 
+            [
+                "energy", 
+                0
+            ], 
+            [
+                "distance", 
+                0
+            ], 
+            [
+                "center", 
+                0
+            ], 
+            [
+                "height", 
+                0
+            ]
+        ], 
+        "power": 0.001
+    }, 
+    "more power": {
+        "slope": 0.0015, 
+        "file_name": "power.p", 
+        "max_speed": 0.07, 
+        "reward_modes": [
+            [
+                "time", 
+                1
+            ], 
+            [
+                "energy", 
+                0
+            ], 
+            [
+                "distance", 
+                0
+            ], 
+            [
+                "center", 
+                0
+            ], 
+            [
+                "height", 
+                0
+            ]
+        ], 
+        "power": 0.005
+    }, 
+    "standard": {
+        "slope": 0.0025, 
+        "file_name": "standard.p", 
+        "max_speed": 0.07, 
+        "reward_modes": [
+            [
+                "time", 
+                1
+            ], 
+            [
+                "energy", 
+                0
+            ], 
+            [
+                "distance", 
+                0
+            ], 
+            [
+                "center", 
+                0
+            ], 
+            [
+                "height", 
+                0
+            ]
+        ], 
+        "power": 0.001
+    }
+}
