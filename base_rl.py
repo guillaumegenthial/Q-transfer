@@ -314,7 +314,7 @@ def train_task(
         env=env, 
         policy=rl.getPolicy(), 
         discount=discount,
-        num_trials=1000,
+        num_trials=300,
         max_iter=max_iter
     )
 

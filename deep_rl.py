@@ -232,7 +232,7 @@ class DeepQTransfer(SimpleQLearning):
 
 ####################################################
 
-def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weights.p", verbose=False, reload_weights=True, discount=1, explorationProb=0.1, eligibility=False):
+def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weights.p", verbose=False, reload_weights=True, discount=1, explorationProb=0.1, eligibility=False, mode=0):
     filename = "weights/"+filename
     weights = filename if reload_weights else None
     actions = range(env.action_space.n)
