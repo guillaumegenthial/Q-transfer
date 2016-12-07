@@ -203,10 +203,10 @@ class SimpleQLearning:
             for it in xrange(max_iter):
                 if done:
                     if verbose: 
-                        print("Episode finished after {} timesteps".format(it+1))
+                        print("\nEpisode finished after {} timesteps".format(it+1))
                     break
-                # if verbose:
-                #     env.render()
+                if verbose:
+                    env.render()
                 action = self.getAction(state)
                 newState, reward, done, info = env.step(action)
                 self._update(state, action, reward, newState, eligibility)

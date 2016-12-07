@@ -27,15 +27,18 @@ class DeepQTransfer(SimpleQLearning):
         # weights of network
         self.params = collections.OrderedDict()
 
-    def uniform(self, size, scale=0.05):
-        return np.random.uniform(low=-scale, high=scale, size=size)
+    def init(self, size, init="uniform"):
+        if init == "uniform":
+            return np.random.uniform(low=-0.05, high=0.05, size=size)
+        elif init == "ones":
+            return 0.05*np.ones(size)
 
-    def parameter_matrix(self, name, size=None, weights=None):
+    def parameter_matrix(self, name, size=None, weights=None, init="uniform"):
         if name not in self.params:
             if weights:
                 self.params[name] = theano.shared(weights.astype(floatX), name)
             else:
-                weights = self.uniform(size)
+                weights = self.init(size, init)
                 self.params[name] = theano.shared(weights.astype(floatX), name)
 
         return self.params[name]
@@ -47,6 +50,8 @@ class DeepQTransfer(SimpleQLearning):
             return T.nnet.sigmoid(x)
         elif activation == "tanh":
             return T.tanh(x)
+        elif activation == "relu":
+            return T.nnet.relu(x, 0)
         else:
             print("ERROR, {} is an unknown activation".format(activation))
             raise
@@ -55,8 +60,10 @@ class DeepQTransfer(SimpleQLearning):
         M = self.parameter_matrix("M_{}".format(name), (x_dim, y_dim))
         z = T.dot(x, M)
 
+        b = self.parameter_matrix("b_{}".format(name), (y_dim,), init="ones")
+
         if activation:
-            return self.activation(activation, z)
+            return self.activation(activation, z) + b
         else:
             return z
 
@@ -75,11 +82,13 @@ class DeepQTransfer(SimpleQLearning):
         # M_s = self.parameter_matrix("M_s", (3, self.n_sources))
         # output = T.dot(q_values, M_q)
 
-        z1 = self.fully_connected("h1", state_action, 3, self.n_sources*2, "sigmoid")
-        z2 = self.fully_connected("h_out", z1, self.n_sources*2, self.n_sources, "sigmoid")
+        z1 = self.fully_connected("h1", state_action, 3, self.n_sources*2, "relu")
+        alpha = self.fully_connected("alpha", z1, self.n_sources*2, self.n_sources, "relu")
 
-        q_ = q_values * z2
-        output = self.fully_connected("q", q_, self.n_sources, 1)
+        # q_ = q_values * z2
+        # output = self.fully_connected("q", q_, self.n_sources, 1)
+
+        output = T.dot(alpha, q_values).sum()
 
 
         # Q eval
@@ -90,7 +99,7 @@ class DeepQTransfer(SimpleQLearning):
             allow_input_downcast=True)
 
         # target
-        target = T.vector("target", floatX)
+        target = T.scalar("target", floatX)
         loss = T.mean(T.sqr(target - output))
 
         # get gradients

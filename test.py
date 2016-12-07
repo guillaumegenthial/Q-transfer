@@ -32,7 +32,7 @@ def beta(env, observation, N):
         features += [int((obs-env.low[i])/radius*N)]
     return features
 
-def explore(env, observation, N, theta level=0.2):
+def explore(env, observation, N, theta, level=0.2):
     # must return an action
     eps = np.random.random()
     if eps < level:
@@ -78,9 +78,9 @@ def play(env):
         observation = env.reset()
         for t in range(100):
             env.render()
-            action = 0
+            action = env.action_space.sample()
+            print action
             observation, reward, done, info = env.step(action)
-            print beta(env, observation, 10)
             if done:
                 print("Episode finished after {} timesteps".format(t+1))
                 break
@@ -110,15 +110,16 @@ def plot(env, theta, beta):
     plt.show()
 
 # env
-ENV = 'MountainCar-v0'
+ENV = 'MountainCarContinuous-v0'
 env = gym.make(ENV)
-env.set_mode(0)
-gamma = 1
-# test policy
-# pol = lambda observation: 2
-# with open("theta.pkl") as f:
-#     theta = pickle.load(f)
-theta = global_approximation(env)
+play(env)
+# env.set_mode(0)
+# gamma = 1
+# # test policy
+# # pol = lambda observation: 2
+# # with open("theta.pkl") as f:
+# #     theta = pickle.load(f)
+# theta = global_approximation(env)
 # with open("theta.pkl", "w") as f:
 #     pickle.dump(theta, f)
 # plot(env, theta, beta)

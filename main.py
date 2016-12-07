@@ -8,14 +8,14 @@ import deep_rl
 ENV = 'MountainCar-v0'
 N_SOURCES = 10
 TARGET_NAME = "full"
-VERBOSE = False
+VERBOSE = True
 EXPLORATION_PROBA = 0.2
 MAX_ITER = 1000
-NUM_TRIALS = 300
+NUM_TRIALS = 100
 RELOAD_WEIGHTS = False
 DISCOUNT = 1
 ELIGIBILITY = False
-TRAIN = False
+TRAIN = True
 
 if __name__ == "__main__":
     env = gym.make(ENV)
@@ -73,6 +73,28 @@ if __name__ == "__main__":
     power = param["power"]
 
     env.set_task(reward_modes, slope, max_speed, power)
+
+    # env.set_task(
+    #     modes=[
+    #     ("time", 1),
+    #     ("energy", 0),
+    #     ("distance", 0),
+    #     ("center", 0),
+    #     ("height", 0),
+    #     ("still", 0)
+    #     ], 
+    #     slope=00025, 
+    #     speed=0.07, 
+    #     power=0.001, 
+    #     min_position=-1.2,
+    #     low=-0.6,
+    #     high=-0.4,
+    #     obstacles=[
+    #     (-.5, .1, .01), 
+    #     (0, .1, .05)], 
+    #     actions_nb=3,
+    #     neutral=1
+    #     )
 
 
     ##################################################
