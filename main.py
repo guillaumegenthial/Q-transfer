@@ -18,6 +18,7 @@ if __name__ == "__main__":
     ENV                 = config.ENV
     N_SOURCES           = config.N_SOURCES
     TARGET_NAME         = config.TARGET_NAME
+    SOURCE_NAMES        = config.SOURCE_NAMES
     VERBOSE             = config.VERBOSE
     EXPLORATION_PROBA   = config.EXPLORATION_PROBA
     MAX_ITER            = config.MAX_ITER
@@ -41,45 +42,42 @@ if __name__ == "__main__":
     
     if TRAIN:
         for name, param in SOURCES.iteritems():
-            evaluation, se = base_rl.train_task(
-                discreteExtractor=env_interaction.discreteExtractor(env), 
-                featureExtractor=env_interaction.simpleFeatures(env), 
-                env=env, 
-                name=name, 
-                param=param, 
-                num_trials=NUM_TRIALS_SOURCES, 
-                max_iter=MAX_ITER, 
-                verbose=VERBOSE, 
-                reload_weights=RELOAD_WEIGHTS, 
-                discount=DISCOUNT, 
-                explorationProb=EXPLORATION_PROBA,
-                eligibility=ELIGIBILITY
-            )
-            fout.write("{}\t{}\t+/-{}\n".format(name, evaluation, se))
-            # env_interaction.plotQ(env, rl.evalQ)
-            # env_interaction.play(env, rl.getPolicy())
+            if name in SOURCE_NAMES:
+                evaluation, se = base_rl.train_task(
+                    discreteExtractor=env_interaction.discreteExtractor(env), 
+                    featureExtractor=env_interaction.simpleFeatures(env), 
+                    env=env, 
+                    name=name, 
+                    param=param, 
+                    num_trials=NUM_TRIALS_SOURCES, 
+                    max_iter=MAX_ITER, 
+                    verbose=VERBOSE, 
+                    reload_weights=RELOAD_WEIGHTS, 
+                    discount=DISCOUNT, 
+                    explorationProb=EXPLORATION_PROBA,
+                    eligibility=ELIGIBILITY
+                )
+                fout.write("{}\t{}\t+/-{}\n".format(name, evaluation, se))
+                # env_interaction.plotQ(env, rl.evalQ)
+                # env_interaction.play(env, rl.getPolicy())
 
     # 2. learn combination of tasks for full
     sources = []
     for name, param in SOURCES.iteritems():
-        sources.append(base_rl.SimpleQLearning(
-            name=name, 
-            actions=range(env.action_space.n), 
-            discount=DISCOUNT, 
-            discreteExtractor=env_interaction.discreteExtractor(env), 
-            featureExtractor=env_interaction.simpleFeatures(env), 
-            explorationProb=0., 
-            weights="weights/{}{}.p".format(param["file_name"][:-2], NUM_TRIALS_SOURCES)
-        ))
+        if name in SOURCE_NAMES:
+            sources.append(base_rl.SimpleQLearning(
+                name=name, 
+                actions=range(env.action_space.n), 
+                discount=DISCOUNT, 
+                discreteExtractor=env_interaction.discreteExtractor(env), 
+                featureExtractor=env_interaction.simpleFeatures(env), 
+                explorationProb=0., 
+                weights="weights/{}{}.p".format(param["file_name"][:-2], NUM_TRIALS_SOURCES)
+            ))
 
     param = TARGET[TARGET_NAME]
-    file_name = param["file_name"]
-    slope = param["slope"]
-    reward_modes = param["reward_modes"]
-    max_speed = param["max_speed"]
-    power = param["power"]
 
-    env.set_task(reward_modes, slope, max_speed, power)
+    env.set_task_params(param)
 
     # env.set_task(
     #     modes=[

@@ -73,9 +73,10 @@ SOURCES = {
                 ("center", 0),
                 ("height", 0)
                 ],
-        "slope": 0.0025,
-        "max_speed": 0.07,
-        "power" :0.001,
+        "slope" : 0.0025,
+        "max_speed" : 0.07,
+        "power" : 0.001,
+        "obstacles" : [] 
     },
 
     "easy slope" : {
@@ -90,6 +91,7 @@ SOURCES = {
         "slope": 0.0015,
         "max_speed": 0.07,
         "power" :0.001,
+        "obstacles" : [] 
     },
 
     "more power" : {
@@ -104,6 +106,7 @@ SOURCES = {
         "slope": 0.0015,
         "max_speed": 0.07,
         "power" :0.005,
+        "obstacles" : [] 
     },
 
     "energy" : {
@@ -118,6 +121,7 @@ SOURCES = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
+        "obstacles" : [] 
     },
 
     "distance" : {
@@ -132,6 +136,7 @@ SOURCES = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
+        "obstacles" : [] 
     },
 
     # "center" : {
@@ -167,6 +172,21 @@ SOURCES = {
 
 
 TARGET = {
+    "full_clean" : {
+        "file_name" : "full.p",
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 1),
+                ("distance", 1),
+                ("center", 1),
+                ("height", 1)
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "obstacles" : [] 
+    },
+
     "full" : {
         "file_name" : "full.p",
         "reward_modes" : [
@@ -179,6 +199,7 @@ TARGET = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
+        "obstacles" : [(-.5, .1, .01), (0, .1, .05)] 
     },
 
     "full_energy" : {
@@ -193,5 +214,6 @@ TARGET = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
+        "obstacles" : [(-.5, .1, .01), (0, .1, .05)] 
     },
 }

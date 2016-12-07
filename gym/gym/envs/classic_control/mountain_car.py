@@ -113,7 +113,30 @@ class MountainCarEnv(gym.Env):
         self.set_min_pos(min_position)
         self.set_reset_param(low, high)
         self.add_obstacles(obstacles)
-        
+
+    def set_task_params(self, params):
+        self.set_task(
+            modes = params.get("modes", [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 0),
+                ("still", 0)
+            ]),
+            slope = params.get("slope", 0.0025),
+            speed = params.get("speed", 0.07), 
+            power = params.get("power", 0.001), 
+            min_position = params.get("min_position", -1.2),
+            low = params.get("low", -0.6),
+            high = params.get("high", -0.4),
+            obstacles = params.get("obstacles", [
+                (-.5, .1, .01), 
+                (0, .1, .05)
+            ]),
+            actions_nb = params.get("actions_nb", 3),
+            neutral = params.get("neutral", 1)
+          )      
 
     def set_actions(self, actions_nb=3, neutral=1):
         self.actions_nb = actions_nb
@@ -180,7 +203,7 @@ class MountainCarEnv(gym.Env):
             elif mode == "height":
                 reward += prop * self._height(position)
             elif mode == "still":
-                reward += prop * - (velocity/max_speed)**2
+                reward += prop * - (velocity/self.max_speed)**2
             else:
                 print "Unknown mode ".format(mode)
                 raise

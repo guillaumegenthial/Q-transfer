@@ -287,12 +287,8 @@ def train_task(
     """
     print("\nTask {}".format(name))
     file_name = param["file_name"]
-    slope = param["slope"]
-    reward_modes = param["reward_modes"]
-    max_speed = param["max_speed"]
-    power = param["power"]
 
-    env.set_task(reward_modes, slope, max_speed, power)
+    env.set_task_params(param)
 
     rl = rl_train(
         name=name, 
