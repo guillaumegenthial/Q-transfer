@@ -1,7 +1,7 @@
-EXP_NAME = "basicFulls500_clean"
+EXP_NAME = "moreActions500_cleanSources"
 ENV = 'MountainCar-v0'
 N_SOURCES = 10
-TARGET_NAME = "full"
+TARGET_NAME = "more_actions"
 SOURCE_NAMES = ["standard", "easy slope", "more power", "energy", "distance"]
 VERBOSE = False
 EXPLORATION_PROBA = 0.2
@@ -12,5 +12,5 @@ NUM_TRIALS = [5, 10, 20, 50, 100, 150, 200, 300]
 RELOAD_WEIGHTS = False
 DISCOUNT = 1
 ELIGIBILITY = False
-TRAIN = True
+TRAIN = False
 DEEP_MODE = 1

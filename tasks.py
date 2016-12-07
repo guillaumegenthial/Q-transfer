@@ -79,6 +79,21 @@ SOURCES = {
         "obstacles" : [] 
     },
 
+    "bumps" : {
+        "file_name" : "standard.p",
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 0)
+                ],
+        "slope" : 0.0025,
+        "max_speed" : 0.07,
+        "power" : 0.001,
+        "obstacles" : [(-.5, .3, .03), (1., .6, .1), (0, .2, .03)] 
+    },
+
     "easy slope" : {
         "file_name" : "easy.p",
         "reward_modes" : [
@@ -173,7 +188,7 @@ SOURCES = {
 
 TARGET = {
     "full_clean" : {
-        "file_name" : "full.p",
+        "file_name" : "full_clean.p",
         "reward_modes" : [
                 ("time", 1),
                 ("energy", 1),
@@ -199,7 +214,23 @@ TARGET = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
-        "obstacles" : [(-.5, .1, .01), (0, .1, .05)] 
+        "obstacles" : [(-.5, .1, .01), (1., .3, .05), (0, .1, .05)] 
+    },
+
+    "more_actions" : {
+        "file_name" : "more_actions.p",
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 1),
+                ("distance", 1),
+                ("center", 1),
+                ("height", 1)
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "obstacles" : [(-.5, .1, .01), (1., .3, .05), (0, .1, .05)],
+        "actions_nb" : 5
     },
 
     "full_energy" : {
@@ -214,6 +245,6 @@ TARGET = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
-        "obstacles" : [(-.5, .1, .01), (0, .1, .05)] 
+        "obstacles" : [(-.5, .1, .01), (1., .3, .05), (0, .1, .05)] 
     },
 }

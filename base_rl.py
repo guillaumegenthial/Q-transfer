@@ -253,7 +253,7 @@ def rl_train(
         explorationProb=explorationProb, 
         weights=weights
         )
-    rl.train(
+    rewards = rl.train(
         env=env, 
         num_trials=num_trials, 
         max_iter=max_iter, 
@@ -263,7 +263,7 @@ def rl_train(
 
     rl.dump(filename)
     
-    return rl
+    return rl, np.mean(rewards)
 
 def train_task(
     env, 
@@ -290,7 +290,7 @@ def train_task(
 
     env.set_task_params(param)
 
-    rl = rl_train(
+    rl, training_reward = rl_train(
         name=name, 
         env=env, 
         discreteExtractor=discreteExtractor, 
@@ -314,4 +314,4 @@ def train_task(
         max_iter=max_iter
     )
 
-    return evaluation, se
+    return evaluation, se, training_reward

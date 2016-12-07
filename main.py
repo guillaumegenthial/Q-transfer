@@ -43,7 +43,7 @@ if __name__ == "__main__":
     if TRAIN:
         for name, param in SOURCES.iteritems():
             if name in SOURCE_NAMES:
-                evaluation, se = base_rl.train_task(
+                evaluation, se, _ = base_rl.train_task(
                     discreteExtractor=env_interaction.discreteExtractor(env), 
                     featureExtractor=env_interaction.simpleFeatures(env), 
                     env=env, 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
         ########## NEURAL NETWORK IMPLEMENTATION #########
         print "\nDeep transfer"
-        rl_deep = deep_rl.target_train(
+        rl_deep, training_reward = deep_rl.target_train(
             env, 
             TARGET_NAME, 
             sources, 
@@ -134,12 +134,12 @@ if __name__ == "__main__":
             max_iter=MAX_ITER
         )
 
-        fout.write("\t{}\t{}\t+/-{}\n".format(TARGET_NAME+"_target_deep", evaluation, se))
+        fout.write("\t{}\t{}\t+/-{}\t({} at training time)\n".format(TARGET_NAME+"_target_deep", evaluation, se, training_reward))
 
 
         ##################################################
         print "\nLinear transfer"
-        rl_ens = ensemble_rl.target_train(
+        rl_ens, training_reward = ensemble_rl.target_train(
             env, 
             TARGET_NAME, 
             sources, 
@@ -152,7 +152,6 @@ if __name__ == "__main__":
             explorationProb=EXPLORATION_PROBA,
             eligibility=False
         )
-        print "coefs", rl_ens.coefs
         evaluation, se = env_interaction.policy_evaluation(
             env=env, 
             policy=rl_ens.getPolicy(), 
@@ -161,10 +160,10 @@ if __name__ == "__main__":
             max_iter=MAX_ITER
         )
 
-        fout.write("\t{}\t{}\t+/-{}\n".format(TARGET_NAME+"_target_linear", evaluation, se))
+        fout.write("\t{}\t{}\t+/-{}\t({} at training time)\n".format(TARGET_NAME+"_target_linear", evaluation, se, training_reward))
 
         # 3. compare with direct learning
-        evaluation, se = base_rl.train_task(
+        evaluation, se, training_reward = base_rl.train_task(
             discreteExtractor=env_interaction.discreteExtractor(env), 
             featureExtractor=env_interaction.simpleFeatures(env), 
             env=env, 
@@ -179,7 +178,7 @@ if __name__ == "__main__":
             eligibility=False
         )
 
-        fout.write("\t{}_direct\t{}\t+/-{}\n\n".format(TARGET_NAME, evaluation, se))
+        fout.write("\t{}_direct\t{}\t+/-{}\t({} at training time)\n\n".format(TARGET_NAME, evaluation, se, training_reward))
 
 
     # save config parameters

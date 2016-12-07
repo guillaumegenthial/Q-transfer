@@ -110,7 +110,7 @@ def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weight
 
     rl_ens.preliminaryCheck(np.array([-0.5, 0]),0)
 
-    rl_ens.train(
+    reward = rl_ens.train(
         env, 
         num_trials=num_trials, 
         max_iter=max_iter, 
@@ -119,4 +119,4 @@ def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weight
 
     rl_ens.dump(filename)
 
-    return rl_ens
+    return rl_ens, np.mean(reward)

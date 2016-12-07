@@ -250,7 +250,7 @@ def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weight
 
     rl_deep.add_Q()
 
-    rl_deep.train(
+    reward = rl_deep.train(
         env, 
         num_trials=num_trials, 
         max_iter=max_iter, 
@@ -259,6 +259,6 @@ def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weight
 
     rl_deep.dump(filename)
 
-    return rl_deep
+    return rl_deep, np.mean(reward)
 
 
