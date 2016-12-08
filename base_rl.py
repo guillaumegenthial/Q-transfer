@@ -229,6 +229,7 @@ class SimpleQLearning(object):
                 totalReward += totalDiscount * reward
                 totalDiscount *= self.discount
                 state = newState
+                print state
 
             totalRewards.append(totalReward)
             progress = self.progress(True)

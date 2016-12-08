@@ -47,7 +47,7 @@ def discreteFeatures(env):
     Return a function so that f(state, action) = list of (feature-name, value) 
     """
     def f(state, action):
-        pos, vel = state
+        pos, vel = state[0], state[1]
         r_pos = float(env.high[0] - env.low[0])
         r_vel = float(env.high[1] - env.low[1])
         pos_index = int((pos - env.low[0])/r_pos * 1000)
@@ -59,7 +59,7 @@ def discreteFeatures(env):
 
 def discreteExtractor(env):
     def f(state, action):
-        pos, vel = state
+        pos, vel = state[0], state[1]
         r_pos = float(env.high[0] - env.low[0])
         r_vel = float(env.high[1] - env.low[1])
         pos_index = int((pos - env.low[0])/r_pos * 1000)
@@ -82,7 +82,7 @@ def simpleFeatures(env):
     Return a function so that f(state, action) = list of (feature-name, value) 
     """
     def f(state, action):
-        pos, vel = state
+        pos, vel = state[0], state[1]
         r_pos = float(env.high[0] - env.low[0])
         r_vel = float(env.high[1] - env.low[1])
         pos_index = int((pos - env.low[0])/r_pos * 100)
@@ -102,7 +102,7 @@ def linearSimpleFeatures(env):
     Return a function so that f(state, action) = list of (feature-name, value) 
     """
     def f(state, action):
-        pos, vel = state
+        pos, vel = state[0], state[1]
         r_pos = float(env.high[0] - env.low[0])
         r_vel = float(env.high[1] - env.low[1])
         pos_index = int((pos - env.low[0])/r_pos * 100)
@@ -124,7 +124,7 @@ def linearFeatures(env):
     Return a function so that f(state, action) = list of (feature-name, value) 
     """
     def f(state, action):
-        pos, vel = state
+        pos, vel = state[0], state[1]
         r_pos = float(env.high[0] - env.low[0])
         r_vel = float(env.high[1] - env.low[1])
         pos_index = int((pos - env.low[0])/r_pos * 100)

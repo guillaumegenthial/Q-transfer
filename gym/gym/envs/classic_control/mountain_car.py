@@ -61,8 +61,8 @@ class MountainCarEnv(gym.Env):
         self.set_task()
         # -------------------------------
 
-        self.low = np.array([self.min_position, -self.max_speed])
-        self.high = np.array([self.max_position, self.max_speed])
+        self.low = np.array([self.min_position, -self.max_speed, self._min_height(), self._min_acceleration()])
+        self.high = np.array([self.max_position, self.max_speed, self._max_height(), self._max_acceleration()])
 
         self.viewer = None
 
@@ -233,6 +233,36 @@ class MountainCarEnv(gym.Env):
         g = np.vectorize(f, otypes=[np.float64])
         return g(xs)
 
+    def _min_obstacle(self):
+        min_obstacle = 0
+        for (pos, wide, height) in self.bumps:
+            if height < min_obstacle:
+                min_obstacle = height
+        return min_obstacle
+
+    def _max_obstacle(self):
+        max_obstacle = 0
+        for (pos, wide, height) in self.bumps:
+            if height > max_obstacle:
+                max_obstacle = height
+        return max_obstacle
+
+    def _min_wide(self):
+        min_wide = 0
+        for (pos, wide, height) in self.bumps:
+            if wide < min_wide:
+                min_wide = wide
+            if min_wide == 0:
+                return 1
+            else:
+                return min_wide
+
+    def _min_height(self):
+        return (-1. + min(self._min_obstacle(), 0))*.45 + .55
+
+    def _max_height(self):
+        return (+1 + self._max_obstacle())*.45 + .55
+
     def _obstacle_prime(self, xs):
         """
         Given position, return derivative of the obstacle height
@@ -247,6 +277,12 @@ class MountainCarEnv(gym.Env):
         g = np.vectorize(f, otypes=[np.float64])
         return g(xs)
 
+    def _max_obstacle_prime(self):
+        return self._min_height()*np.pi/(2 * self._min_wide())
+
+    def _min_obstacle_prime(self):
+        return self._max_height()*np.pi/(2 * self._min_wide())
+
     def _height(self, xs):
         """
         compute height as a function of xs + obstacles
@@ -258,6 +294,12 @@ class MountainCarEnv(gym.Env):
         returns the derivative of the _height to a factor 1/3
         """
         return math.cos(3*xs) + self._obstacle_prime(3*xs)
+
+    def _min_height_prime(self):
+        return - 1 - max(self._max_obstacle_prime(), - self._min_obstacle_prime())
+
+    def _max_height_prime(self):
+        return 1 + max(self._max_obstacle_prime(), - self._min_obstacle_prime())
 
     def slowdown(self, position, velocity):
         """
@@ -272,14 +314,21 @@ class MountainCarEnv(gym.Env):
     def acceleration(self, action):
         return (action - self.neutral) * self.power
 
+    def _min_acceleration(self):
+        return - self.neutral*self.power - self.slope*self._min_height_prime()
+
+    def _max_acceleration(self):
+        return (self.actions_nb - self.neutral)*self.power + self.slope*self._max_height_prime()
+
     # -----------------------------------
 
     def _step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
 
-        position, velocity = self.state
+        position, velocity, height, acceleration = self.state
         # ------------ MODIFIED ------------
-        velocity += self.acceleration(action) - self.slowdown(position, velocity)
+        acceleration = self.acceleration(action) - self.slowdown(position, velocity)
+        velocity += acceleration
         # -------------------------------
         velocity = np.clip(velocity, -self.max_speed, self.max_speed)
         position += velocity
@@ -289,14 +338,17 @@ class MountainCarEnv(gym.Env):
         done = bool(position >= self.goal_position)
         # ------------ MODIFIED ------------
         reward = self._reward(position, velocity, action)
+        height = self._height(position)
         # -------------------------------
 
-        self.state = (position, velocity)
+        self.state = (position, velocity, height, acceleration)
         return np.array(self.state), reward, done, {}
 
     def _reset(self):
-        self.state = np.array([self.np_random.uniform(low=self.low_reset, high=self.high_reset), 0])
-        return np.array(self.state)
+        pos = self.np_random.uniform(low=self.low_reset, high=self.high_reset)
+        h = self._height(pos)
+        self.state = np.array([pos, 0, h, 0])
+        return self.state
 
     
     def _render(self, mode='human', close=False):

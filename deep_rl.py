@@ -209,11 +209,12 @@ class DeepQTransfer(SimpleQLearning):
             )
 
     def process_data(self, state, action):
+        pos, vel = state[0], state[1]
         q_values = np.zeros(self.n_sources, floatX)
         for i in xrange(self.n_sources):
             q_values[i] = self.sources[i].evalQ(state, action)
 
-        return q_values, np.append(state, action)
+        return q_values, np.append(np.array([pos, vel]), action)
 
     def evalQ(self, state, action):
         """
