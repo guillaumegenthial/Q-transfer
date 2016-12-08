@@ -10,7 +10,16 @@ from base_rl import SimpleQLearning
 import numpy as np
 
 class EnsembleQLearning(SimpleQLearning):
-    def __init__(self, name, sources, actions, discount, weights=None, explorationProb = 0.2, eligibility=0.9):
+    def __init__(
+        self, 
+        name, 
+        sources, 
+        actions, 
+        discount, 
+        weights=None, 
+        explorationProb=0.2, 
+        eligibility=0.9, 
+        reload_weights=False):
         """
         `actions` is the list of possible actions at any state
         `sources` a list of source SimpleQLearning
@@ -22,19 +31,24 @@ class EnsembleQLearning(SimpleQLearning):
         self.discount = discount
         self.explorationProb = explorationProb
         self.numIters = 0
-        
         self.eligibility = eligibility
 
-        if weights:
+        if weights and reload_weights:
             self.load(weights)
         else:
-            self.coefs = [1./self.n_sources] * self.n_sources
+            self.default_load()
+
+    def default_load(self):
+        self.coefs = [1./self.n_sources] * self.n_sources        
 
     def progress(self, compute=False):
-        if compute:
-            return np.sum(np.square(self.coefs - self.coefs_bak))
-        else:
-            self.coefs_bak = deepcopy(self.coefs)
+        try:
+            if compute:
+                return np.sum(np.square(self.coefs - self.coefs_bak))
+            else:
+                self.coefs_bak = deepcopy(self.coefs)
+        except Exception, e:
+            pass
 
     def preliminaryCheck(self, state, action):
         sources = self.sources
@@ -89,34 +103,3 @@ class EnsembleQLearning(SimpleQLearning):
         with open(file_name, "rb") as fin:
             print("Loading coefs from file {}".format(file_name))
             self.coefs = pickle.load(fin)
-
-
-####################################################
-
-def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weights.p", verbose=False, reload_weights=True, discount=1, explorationProb=0.1, eligibility=False):
-    filename = "weights/"+filename
-    weights = filename if reload_weights else None
-    actions = range(env.action_space.n)
-
-    rl_ens = EnsembleQLearning(
-        name=name, 
-        sources=sources, 
-        actions=range(env.action_space.n), 
-        discount=discount,
-        weights=weights,
-        explorationProb=explorationProb,
-        eligibility=eligibility
-    )
-
-    rl_ens.preliminaryCheck(np.array([-0.5, 0]),0)
-
-    reward = rl_ens.train(
-        env, 
-        num_trials=num_trials, 
-        max_iter=max_iter, 
-        verbose=verbose
-    )
-
-    rl_ens.dump(filename)
-
-    return rl_ens, np.mean(reward)

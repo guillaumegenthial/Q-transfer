@@ -6,12 +6,24 @@ import theano
 import theano.tensor as T
 import base_rl
 from base_rl import SimpleQLearning
+from ensemble_rl import EnsembleQLearning
 
 floatX = theano.config.floatX
 
 
 class DeepQTransfer(SimpleQLearning):
-    def __init__(self, name, sources, actions, discount, weights=None, explorationProb = 0.2, eligibility=0.9, reload_freq=10, mode=0):
+    def __init__(
+        self, 
+        name, 
+        sources, 
+        actions, 
+        discount, 
+        weights=None, 
+        explorationProb=0.2, 
+        eligibility=0.9, 
+        reload_weights=False,
+        reload_freq=10, 
+        mode=0,):
         """
         `actions` is the list of possible actions at any state
         `sources` a list of source SimpleQLearning
@@ -23,8 +35,13 @@ class DeepQTransfer(SimpleQLearning):
         self.discount = discount
         self.explorationProb = explorationProb
         self.numIters = 0
-        self.coefs = [1./self.n_sources] * self.n_sources
         self.eligibility = eligibility
+
+        if weights and reload_weights:
+            self.load(weights)
+        else:
+            self.default_load()
+
         # handle update from time to time for params for eval
         self.reload_freq = reload_freq
         # counts the number of calls to evalQ without reloading params
@@ -32,13 +49,13 @@ class DeepQTransfer(SimpleQLearning):
         # set a choice for the way we compute ouput
         self.mode = mode
 
-        if weights:
-            self.load(weights)
-        else:
-            # weights of network
-            self.params = collections.OrderedDict()
-            # copy updated from time to time
-            self.params_bak = collections.OrderedDict()
+        self.add_Q()
+
+    def default_load(self):
+        # weights of network
+        self.params = collections.OrderedDict()
+        # copy updated from time to time
+        self.params_bak = collections.OrderedDict()
 
     def load(self, file_name):
         """
@@ -227,38 +244,3 @@ class DeepQTransfer(SimpleQLearning):
 
         # update
         self.Q_update(q_values, state_action, target)
-        # M_q = self.params["M_q"].get_value()
-        # print M_q / M_q.sum()
-
-####################################################
-
-def target_train(env, name, sources, num_trials=1, max_iter=10, filename="weights.p", verbose=False, reload_weights=True, discount=1, explorationProb=0.1, eligibility=False, mode=0):
-    filename = "weights/"+filename
-    weights = filename if reload_weights else None
-    actions = range(env.action_space.n)
-
-    rl_deep = DeepQTransfer(
-        name=name, 
-        sources=sources, 
-        actions=range(env.action_space.n), 
-        discount=discount, 
-        weights=weights,
-        mode=mode,
-        explorationProb=explorationProb,
-        eligibility=eligibility
-    )
-
-    rl_deep.add_Q()
-
-    reward = rl_deep.train(
-        env, 
-        num_trials=num_trials, 
-        max_iter=max_iter, 
-        verbose=verbose
-    )
-
-    rl_deep.dump(filename)
-
-    return rl_deep, np.mean(reward)
-
-

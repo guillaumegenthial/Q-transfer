@@ -11,7 +11,7 @@ import sys
 import numpy as np
 
 
-class SimpleQLearning:
+class SimpleQLearning(object):
     def __init__(self, 
         name, 
         actions, 
@@ -20,7 +20,8 @@ class SimpleQLearning:
         featureExtractor, 
         explorationProb=0.2, 
         weights=None, 
-        eligibility=0.9):
+        eligibility=0.9,
+        reload_weights=False):
         """
         `actions` is the list of possible actions at any state
         `featureExtractor` takes a (state, action) and returns a feature dictionary
@@ -35,7 +36,7 @@ class SimpleQLearning:
         self.numIters = 0
         self.eligibility = eligibility
 
-        if weights:
+        if weights and reload_weights:
             self.load(weights)
         else:
             self.weights = defaultdict(float)
@@ -43,7 +44,10 @@ class SimpleQLearning:
         self.el_traces = defaultdict(float)
 
     def normalize(self):
-        M = 1
+        """
+        Normalizes weights so that there are between -1 and 1
+        """
+        M = 0.00001
         for k, v in self.weights.iteritems():
             if np.abs(v) > M:
                 M = np.abs(v)
@@ -221,97 +225,3 @@ class SimpleQLearning:
         plt_mgr.export("plots")
         plt_mgr.close(force=True)
         return totalRewards
-
-
-
-############################################################
-
-def rl_train(
-    name, 
-    env, 
-    discreteExtractor, 
-    featureExtractor, 
-    num_trials=1, 
-    max_iter=10000, 
-    filename="weights.p", 
-    verbose = False, 
-    reload_weights=True, 
-    discount=1, 
-    explorationProb=0.1, 
-    eligibility=False):
-    
-    filename = "weights/{}{}.p".format(filename[:-2], num_trials)
-    weights = filename if reload_weights else None
-    actions = range(env.action_space.n)
-
-    rl = SimpleQLearning(
-        name=name, 
-        actions=actions, 
-        discount=discount, 
-        discreteExtractor=discreteExtractor, 
-        featureExtractor=featureExtractor, 
-        explorationProb=explorationProb, 
-        weights=weights
-        )
-    rewards = rl.train(
-        env=env, 
-        num_trials=num_trials, 
-        max_iter=max_iter, 
-        verbose=verbose, 
-        eligibility=eligibility,
-        )
-
-    rl.dump(filename)
-    
-    return rl, np.mean(rewards)
-
-def train_task(
-    env, 
-    discreteExtractor, 
-    featureExtractor, 
-    name, 
-    param, 
-    num_trials, 
-    max_iter, 
-    verbose, 
-    reload_weights, 
-    discount, 
-    explorationProb, 
-    eligibility):
-    """
-    perform task training
-
-    saves plot of performance during training in /plots
-    saves weights in /weights
-    return policy evaluation
-    """
-    print("\nTask {}".format(name))
-    file_name = param["file_name"]
-
-    env.set_task_params(param)
-
-    rl, training_reward = rl_train(
-        name=name, 
-        env=env, 
-        discreteExtractor=discreteExtractor, 
-        featureExtractor=featureExtractor, 
-        num_trials=num_trials, 
-        max_iter=max_iter,
-        filename=file_name, 
-        verbose=verbose,
-        reload_weights=reload_weights, 
-        discount=discount, 
-        explorationProb=explorationProb,
-        eligibility=eligibility)
-
-    rl.normalize()
-
-    evaluation, se = env_interaction.policy_evaluation(
-        env=env, 
-        policy=rl.getPolicy(), 
-        discount=discount,
-        num_trials=300,
-        max_iter=max_iter
-    )
-
-    return evaluation, se, training_reward
