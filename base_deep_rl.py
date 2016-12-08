@@ -5,27 +5,24 @@ import copy
 import theano
 import theano.tensor as T
 import base_rl
+import env_interaction
 from base_rl import SimpleQLearning
 
 floatX = theano.config.floatX
 
 
 class DeepQLearning(SimpleQLearning):
-   	def __init__(self, 
-        name, 
-        actions, 
-        discount, 
-        discreteExtractor, 
-        featureExtractor, 
-        explorationProb=0.2, 
-        weights=None, 
-        eligibility=0.9, 
-        reload_freq=10):
-        """
-        `actions` is the list of possible actions at any state
-        `featureExtractor` takes a (state, action) and returns a feature dictionary
-        `weights` is an optional file containing pre-computed weights
-        """
+    def __init__(self, 
+            name, 
+            actions, 
+            discount, 
+            discreteExtractor, 
+            featureExtractor, 
+            explorationProb=0.2, 
+            weights=None, 
+            eligibility=0.9, 
+            reload_freq=20):
+
         self.name = name
         self.actions = actions
         self.discount = discount
@@ -123,28 +120,28 @@ class DeepQLearning(SimpleQLearning):
             return z
 
     def process_data(self, state, action):
-    	"""
-		Returns a np array representing input to neural network
-    	"""
-    	return np.append(state, action)
+        """
+        Returns a np array representing input to neural network
+        """
+        return np.append(state, action)
 
-   	def output(self, state_action, bak=False):
-   		h1 = self.fully_connected("h1", state_action, 3, 5, bak, "sigmoid")
-   		h2 = self.fully_connected("h2", state_action, 5, 5, bak, "sigmoid")
+    def output(self, state_action, bak=False):
+       h1 = self.fully_connected("h1", state_action, 3, 5, bak, "sigmoid")
+       h2 = self.fully_connected("h2", h1, 5, 5, bak, "sigmoid")
 
-   		output = self.fully_connected("out", h2, 5, 1, bak, "sigmoid").sum()
+       output = self.fully_connected("out", h2, 5, 1, bak, "sigmoid").sum()
 
-   		return output
+       return output
 
 
     def add_Q(self):
-    	"""
+        """
         Adds 2 functions to the class
             - Q_eval : to evaluate Q value
             - Q_update : to update parameters of Q-transfert
         """
         # inputs
-    	state_action = T.vector("state", floatX)
+        state_action = T.vector("state", floatX)
         target = T.scalar("target", floatX)
 
         # compute output with bak params
@@ -167,7 +164,7 @@ class DeepQLearning(SimpleQLearning):
         # get updates
         updates = []
         for p, g in zip(self.params.values(), grads):
-            updates.append((p, p - 0.000001 * g))
+            updates.append((p, p - 0.1 * g))
 
         # define function
         self.Q_update = theano.function(
@@ -180,7 +177,7 @@ class DeepQLearning(SimpleQLearning):
 
 
 
-	def evalQ(self, state, action):
+    def evalQ(self, state, action):
         """
         Evaluate Q-function for a given (`state`, `action`)
         """
@@ -209,9 +206,74 @@ class DeepQLearning(SimpleQLearning):
         target = np.array(reward + self.discount * v_opt)
 
         # compute input data
-        q_values, state_action = self.process_data(state, action)
+        state_action = self.process_data(state, action)
 
         # update
-        self.Q_update(q_values, state_action, target)
+        self.Q_update(state_action, target)
 
 
+def train_task(
+    env, 
+    discreteExtractor, 
+    featureExtractor, 
+    name, 
+    param, 
+    num_trials, 
+    max_iter, 
+    verbose, 
+    reload_weights, 
+    discount, 
+    explorationProb, 
+    eligibility):
+    """
+    perform task training
+
+    saves plot of performance during training in /plots
+    saves weights in /weights
+    writes policy evaluation in file result.txt
+    """
+    print("Task {}".format(name))
+    filename = param["file_name"]
+    slope = param["slope"]
+    reward_modes = param["reward_modes"]
+    max_speed = param["max_speed"]
+    power = param["power"]
+
+    filename = "weights/"+filename
+    weights = filename if reload_weights else None
+    actions = range(env.action_space.n)
+
+
+    env.set_task(reward_modes, slope, max_speed, power)
+
+    rl = DeepQLearning(
+        name=name, 
+        actions=actions, 
+        discount=discount, 
+        discreteExtractor=discreteExtractor, 
+        featureExtractor=featureExtractor, 
+        explorationProb=explorationProb, 
+        weights=weights
+        )
+
+    rl.add_Q()
+
+    rl.train(
+        env=env, 
+        num_trials=num_trials, 
+        max_iter=max_iter, 
+        verbose=verbose, 
+        eligibility=eligibility,
+        )
+
+    rl.dump(filename)
+
+
+    evaluation = env_interaction.policy_evaluation(
+        env=env, 
+        policy=rl.getPolicy(), 
+        discount=discount)
+
+
+    with open("results.txt", "a") as f:
+        f.write("{} {}\n".format(name, evaluation))
