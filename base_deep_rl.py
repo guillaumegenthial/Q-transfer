@@ -54,6 +54,14 @@ class DeepQLearning(SimpleQLearning):
             self.params = pickle.load(fin)
             self.params_bak = copy.deepcopy(self.params)
 
+    def makeGreedy(self):
+        """
+        Set explorationProb to 0, ie. greedily chooses best actions
+        """
+        self.reload_params()
+        self.explorationProb = 0.
+
+
     def reload_params(self):
         """
         Update params_bak with param
@@ -210,70 +218,3 @@ class DeepQLearning(SimpleQLearning):
 
         # update
         self.Q_update(state_action, target)
-
-
-def train_task(
-    env, 
-    discreteExtractor, 
-    featureExtractor, 
-    name, 
-    param, 
-    num_trials, 
-    max_iter, 
-    verbose, 
-    reload_weights, 
-    discount, 
-    explorationProb, 
-    eligibility):
-    """
-    perform task training
-
-    saves plot of performance during training in /plots
-    saves weights in /weights
-    writes policy evaluation in file result.txt
-    """
-    print("Task {}".format(name))
-    filename = param["file_name"]
-    slope = param["slope"]
-    reward_modes = param["reward_modes"]
-    max_speed = param["max_speed"]
-    power = param["power"]
-
-    filename = "weights/"+filename
-    weights = filename if reload_weights else None
-    actions = range(env.action_space.n)
-
-
-    env.set_task(reward_modes, slope, max_speed, power)
-
-    rl = DeepQLearning(
-        name=name, 
-        actions=actions, 
-        discount=discount, 
-        discreteExtractor=discreteExtractor, 
-        featureExtractor=featureExtractor, 
-        explorationProb=explorationProb, 
-        weights=weights
-        )
-
-    rl.add_Q()
-
-    rl.train(
-        env=env, 
-        num_trials=num_trials, 
-        max_iter=max_iter, 
-        verbose=verbose, 
-        eligibility=eligibility,
-        )
-
-    rl.dump(filename)
-
-
-    evaluation = env_interaction.policy_evaluation(
-        env=env, 
-        policy=rl.getPolicy(), 
-        discount=discount)
-
-
-    with open("results.txt", "a") as f:
-        f.write("{} {}\n".format(name, evaluation))

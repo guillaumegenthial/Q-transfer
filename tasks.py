@@ -18,6 +18,30 @@ SOURCES = {
         "high": -0.4,
         "actions_nb": 3,
         "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
+        "obstacles": [] 
+    },
+
+    "bananas": {
+        "reward_modes": [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 0),
+                ("still", 0),
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power": 0.001,
+        "min_position": -1.2,
+        "low": -0.6,
+        "high": -0.4,
+        "actions_nb": 3,
+        "neutral": 1,
+        "p_bananas": 0.1,
+        "h_bananas": 0.2,
         "obstacles": [] 
     },
 
@@ -38,13 +62,15 @@ SOURCES = {
         "high": -0.4,
         "actions_nb": 3,
         "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
         "obstacles" : [
-        (-.5, .3, .03), 
-        (1., .6, .1), 
-        (0, .2, .03)] 
+        (-.5, .3, .3), 
+        (.3, .2, .1), 
+        (0, .2, .1)] 
     },
 
-    "easy slope" : {
+    "easy_slope" : {
         "reward_modes": [
                 ("time", 1),
                 ("energy", 0),
@@ -61,6 +87,8 @@ SOURCES = {
         "high": -0.4,
         "actions_nb": 3,
         "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
         "obstacles" : [] 
     },
 
@@ -81,6 +109,8 @@ SOURCES = {
         "high": -0.4,
         "actions_nb": 3,
         "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
         "obstacles" : [] 
     },
 
@@ -101,38 +131,119 @@ SOURCES = {
         "high": -0.4,
         "actions_nb": 3,
         "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
         "obstacles" : [] 
     },
 
     "distance" : {
         "reward_modes" : [
-                ("time", 0),
+                ("time", 1),
                 ("energy", 0),
                 ("distance", 1),
                 ("center", 0),
-                ("height", 0)
+                ("height", 0),
+                ("still", 0),
                 ],
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
+        "min_position": -1.2,
+        "low": -0.6,
+        "high": -0.4,
+        "actions_nb": 3,
+        "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
         "obstacles" : [] 
-    },    
+    },
+    "center" : {
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 1),
+                ("height", 0),
+                ("still", 0),
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "min_position": -1.2,
+        "low": -0.6,
+        "high": -0.4,
+        "actions_nb": 3,
+        "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
+        "obstacles" : [] 
+    }, 
+    "height" : {
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 1),
+                ("still", 0),
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "min_position": -1.2,
+        "low": -0.6,
+        "high": -0.4,
+        "actions_nb": 3,
+        "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
+        "obstacles" : [] 
+    },   
+    "still" : {
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 0),
+                ("still", 1),
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "min_position": -1.2,
+        "low": -0.6,
+        "high": -0.4,
+        "actions_nb": 3,
+        "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
+        "obstacles" : [] 
+    },     
 }
 
 
-TARGET = {
+TARGETS = {
     "full_clean" : {
         "reward_modes" : [
                 ("time", 1),
                 ("energy", 1),
                 ("distance", 1),
                 ("center", 1),
-                ("height", 1)
+                ("height", 1),
                 ],
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
+        "min_position": -1.2,
+        "low": -0.6,
+        "high": -0.4,
+        "actions_nb": 3,
+        "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
         "obstacles" : [] 
+
     },
 
     "full" : {
@@ -146,7 +257,17 @@ TARGET = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
-        "obstacles" : [(-.5, .1, .01), (1., .3, .05), (0, .1, .05)] 
+        "min_position": -1.2,
+        "low": -0.6,
+        "high": -0.4,
+        "actions_nb": 3,
+        "neutral": 1,
+        "p_bananas": 0,
+        "h_bananas": 0.1,
+        "obstacles" : [
+        (-.7, .1, .1), 
+        (.3, .3, .3), 
+        (1., .1, .2)] 
     },
 
     "more_actions" : {
@@ -160,7 +281,10 @@ TARGET = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
-        "obstacles" : [(-.5, .1, .01), (1., .3, .05), (0, .1, .05)],
+        "obstacles" : [
+        (-.5, .3, .3), 
+        (.3, .2, .1), 
+        (0, .2, .1)] ,
         "actions_nb" : 5
     },
 
@@ -175,6 +299,9 @@ TARGET = {
         "slope": 0.0025,
         "max_speed": 0.07,
         "power" :0.001,
-        "obstacles" : [(-.5, .1, .01), (1., .3, .05), (0, .1, .05)] 
+        "obstacles" : [
+        (-.5, .3, .3), 
+        (.3, .2, .1), 
+        (0, .2, .1)] 
     },
 }

@@ -222,6 +222,6 @@ class SimpleQLearning(object):
             sys.stdout.flush()
 
         print("\nAverage reward: {}".format(sum(totalRewards)/num_trials))
-        plt_mgr.export("plots")
+        # plt_mgr.export("plots")
         plt_mgr.close(force=True)
         return totalRewards

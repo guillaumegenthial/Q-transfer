@@ -102,7 +102,9 @@ class MountainCarEnv(gym.Env):
         (-.5, .1, .01), 
         (0, .1, .05)], 
         actions_nb=3,
-        neutral=1
+        neutral=1,
+        p=0,
+        h=0.1,
         ):
 
         self.set_actions(actions_nb, neutral)
@@ -113,6 +115,7 @@ class MountainCarEnv(gym.Env):
         self.set_min_pos(min_position)
         self.set_reset_param(low, high)
         self.add_obstacles(obstacles)
+        self.add_random_bananas(p, h)
 
     def set_task_params(self, params):
         self.set_task(
@@ -135,7 +138,9 @@ class MountainCarEnv(gym.Env):
                 (0, .1, .05)
             ]),
             actions_nb = params.get("actions_nb", 3),
-            neutral = params.get("neutral", 1)
+            neutral = params.get("neutral", 1),
+            p = params.get("p_bananas", 0),
+            h = params.get("h_bananas", 0.1)
           )      
 
     def set_actions(self, actions_nb=3, neutral=1):
@@ -168,6 +173,10 @@ class MountainCarEnv(gym.Env):
         """
         self.power = power
 
+    def add_random_bananas(self, p=0, h=0.1):
+        self.p = p
+        self.h = h
+
     def add_obstacles(self, bumps=[]):
         """
         Adds bumps and pothole to the env
@@ -177,7 +186,6 @@ class MountainCarEnv(gym.Env):
                 if height positive : bump
                           negative : pothole
         """
-        bumps.sort()
         self.bumps = bumps
 
     def set_min_pos(self, min_position= -1.2):
@@ -187,7 +195,6 @@ class MountainCarEnv(gym.Env):
         self.low_reset = low
         self.high_reset = high
 
-   
     def _reward(self, position, velocity, action):
         modes = self.reward_modes
         reward = 0
@@ -209,7 +216,6 @@ class MountainCarEnv(gym.Env):
                 raise
 
         return reward
-
    
     def _obstacle(self, xs):
         """
@@ -257,7 +263,11 @@ class MountainCarEnv(gym.Env):
         """
         Get slowdown, is the derivative of the height
         """
-        return (self._height_prime(position)) * self.slope
+        random_banana = 0
+        if self.p != 0:
+            if np.random.random() < self.p:
+                random_banana = self.h
+        return (self._height_prime(position) + random_banana) * self.slope
 
     def acceleration(self, action):
         return (action - self.neutral) * self.power
