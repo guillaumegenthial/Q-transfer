@@ -18,7 +18,8 @@ class SimpleQLearning(object):
         discount, 
         discreteExtractor, 
         featureExtractor, 
-        explorationProb=0.2, 
+        exploration_start=1.,
+        exploration_end=0.1, 
         weights=None, 
         eligibility=0.9,
         reload_weights=False):
@@ -32,7 +33,9 @@ class SimpleQLearning(object):
         self.discount = discount
         self.featureExtractor = featureExtractor
         self.discreteExtractor = discreteExtractor
-        self.explorationProb = explorationProb
+        self.exploration_start = exploration_start
+        self.exploration_end = exploration_end
+        self.explorationProb = exploration_start
         self.numIters = 0
         self.eligibility = eligibility
 
@@ -69,7 +72,7 @@ class SimpleQLearning(object):
                 self.weights_bak = deepcopy(self.weights)
         
         except Exception, e:
-            pass
+            return 0.
 
 
     def load(self, file_name):
@@ -97,6 +100,21 @@ class SimpleQLearning(object):
         Set explorationProb to 0, ie. greedily chooses best actions
         """
         self.explorationProb = 0.
+
+    def update_exploration_prob(self, p):
+        """
+        Update exploration proba
+
+        # Args
+            p (float between 0 and 1): 
+                if 0, explo = exploration start (ex : 1) 
+                if 1, explo = exploration end (ex : 0.1)
+
+        """
+        ps = self.exploration_start
+        pe = self.exploration_end
+        a = np.log(pe) - np.log(ps)
+        self.explorationProb = ps*np.exp(p*a)
 
     def evalQ(self, state, action):
         """
@@ -197,7 +215,7 @@ class SimpleQLearning(object):
             state = env.reset() # start state
             self.resetElTraces() # el traces to zero
             self.progress(False)
-
+            self.update_exploration_prob(trial/float(num_trials))
             for it in xrange(max_iter):
                 if done:
                     if verbose: 
@@ -218,7 +236,9 @@ class SimpleQLearning(object):
             # plotting and printing
             plt_mgr.add(name="Task {}, Reward".format(self.name), x=trial, y=totalReward)
             plt_mgr.update()
-            sys.stdout.write("\rTrial nb {}, total reward {}, progress {}".format(trial, totalReward, progress))
+            sys.stdout.write(
+                "\rTrial nb %02d, total reward %.2f, progress %.2f, explo %.2f" %(
+                    trial, totalReward, progress, self.explorationProb))
             sys.stdout.flush()
 
         print("\nAverage reward: {}".format(sum(totalRewards)/num_trials))

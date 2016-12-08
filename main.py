@@ -14,21 +14,22 @@ if len(sys.argv) > 1:
 else:
     config = __import__("config")
 
-EXP_NAME            = config.EXP_NAME
-ENV                 = config.ENV
-TARGET_NAMES        = config.TARGET_NAMES
-SOURCE_NAMES        = config.SOURCE_NAMES
-VERBOSE             = config.VERBOSE
-EXPLORATION_PROBA   = config.EXPLORATION_PROBA
-MAX_ITER            = config.MAX_ITER
-NUM_TRIALS_SOURCES  = config.NUM_TRIALS_SOURCES
-NUM_TRIALS_TARGETS  = config.NUM_TRIALS_TARGETS
-NUM_TRIALS_EVAL     = config.NUM_TRIALS_EVAL
-RELOAD_WEIGHTS      = config.RELOAD_WEIGHTS
-DISCOUNT            = config.DISCOUNT
-ELIGIBILITY         = config.ELIGIBILITY
-TRAIN               = config.TRAIN
-DEEP_MODES          = config.DEEP_MODES
+EXP_NAME                = config.EXP_NAME
+ENV                     = config.ENV
+TARGET_NAMES            = config.TARGET_NAMES
+SOURCE_NAMES            = config.SOURCE_NAMES
+VERBOSE                 = config.VERBOSE
+EXPLORATION_PROBA_START = config.EXPLORATION_PROBA_START
+EXPLORATION_PROBA_END   = config.EXPLORATION_PROBA_END
+MAX_ITER                = config.MAX_ITER
+NUM_TRIALS_SOURCES      = config.NUM_TRIALS_SOURCES
+NUM_TRIALS_TARGETS      = config.NUM_TRIALS_TARGETS
+NUM_TRIALS_EVAL         = config.NUM_TRIALS_EVAL
+RELOAD_WEIGHTS          = config.RELOAD_WEIGHTS
+DISCOUNT                = config.DISCOUNT
+ELIGIBILITY             = config.ELIGIBILITY
+TRAIN                   = config.TRAIN
+DEEP_MODES              = config.DEEP_MODES
 
 env = gym.make(config.ENV)
 fout = open("results/{}.txt".format(EXP_NAME), "wb", 0)
@@ -53,7 +54,8 @@ if TRAIN:
                 discount=DISCOUNT, 
                 discreteExtractor=discreteExtractor, 
                 featureExtractor=featureExtractor, 
-                explorationProb=EXPLORATION_PROBA, 
+                exploration_start=EXPLORATION_PROBA_START,
+                exploration_end=EXPLORATION_PROBA_END, 
                 weights=file_name,
                 reload_weights=RELOAD_WEIGHTS
                 )
@@ -78,8 +80,6 @@ if TRAIN:
             )
 
             fout.write("\t{}\t{}\t+/-{}\n".format(name, evaluation, se))
-            # env_interaction.plotQ(env, rl.evalQ)
-            # env_interaction.play(env, rl.getPolicy())
 
 # 2. load SimpleQLearning objects in sourcess
 sources = []
@@ -92,13 +92,15 @@ for name, param in SOURCES.iteritems():
             discount=DISCOUNT, 
             discreteExtractor=discreteExtractor, 
             featureExtractor=featureExtractor, 
-            explorationProb=0., 
+            exploration_start=0.,
+            exploration_end=0., 
             weights=file_name, 
             reload_weights=True
         ))
 
 # 3. train Targets from sources with different values of num_trials
 for target_name in TARGET_NAMES:
+    fout.write("\n# target: {}\n".format(target_name))
     param = TARGETS[target_name]
     env.set_task_params(param)
 
@@ -121,7 +123,8 @@ for target_name in TARGET_NAMES:
                 discount=DISCOUNT, 
                 weights=file_name,
                 mode=deep_mode,
-                explorationProb=EXPLORATION_PROBA,
+                exploration_start=EXPLORATION_PROBA_START,
+                exploration_end=EXPLORATION_PROBA_END, 
                 eligibility=ELIGIBILITY,
                 reload_weights=RELOAD_WEIGHTS
             )
@@ -159,7 +162,8 @@ for target_name in TARGET_NAMES:
             actions=range(env.action_space.n), 
             discount=DISCOUNT,
             weights=file_name,
-            explorationProb=EXPLORATION_PROBA,
+            exploration_start=EXPLORATION_PROBA_START,
+            exploration_end=EXPLORATION_PROBA_END, 
             eligibility=ELIGIBILITY,
             reload_weights=RELOAD_WEIGHTS, 
         )
@@ -200,7 +204,8 @@ for target_name in TARGET_NAMES:
             discount=DISCOUNT, 
             discreteExtractor=discreteExtractor, 
             featureExtractor=featureExtractor, 
-            explorationProb=EXPLORATION_PROBA, 
+            exploration_start=EXPLORATION_PROBA_START,
+            exploration_end=EXPLORATION_PROBA_END, 
             weights=file_name, 
             reload_weights=RELOAD_WEIGHTS
             )

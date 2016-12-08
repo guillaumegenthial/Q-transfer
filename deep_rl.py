@@ -19,7 +19,8 @@ class DeepQTransfer(SimpleQLearning):
         actions, 
         discount, 
         weights=None, 
-        explorationProb=0.2, 
+        exploration_start=1.,
+        exploration_end=0.1,
         eligibility=0.9, 
         reload_weights=False,
         reload_freq=10, 
@@ -33,7 +34,9 @@ class DeepQTransfer(SimpleQLearning):
         self.n_sources = len(sources)
         self.actions = actions
         self.discount = discount
-        self.explorationProb = explorationProb
+        self.exploration_start = exploration_start
+        self.exploration_end = exploration_end
+        self.explorationProb = exploration_start        
         self.numIters = 0
         self.eligibility = eligibility
 

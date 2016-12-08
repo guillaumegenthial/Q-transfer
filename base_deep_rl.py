@@ -18,7 +18,8 @@ class DeepQLearning(SimpleQLearning):
             discount, 
             discreteExtractor, 
             featureExtractor, 
-            explorationProb=0.2, 
+            exploration_start=1.,
+            exploration_end=0.1, 
             weights=None, 
             eligibility=0.9, 
             reload_freq=20):
@@ -28,7 +29,9 @@ class DeepQLearning(SimpleQLearning):
         self.discount = discount
         self.featureExtractor = featureExtractor
         self.discreteExtractor = discreteExtractor
-        self.explorationProb = explorationProb
+        self.exploration_start = exploration_start
+        self.exploration_end = exploration_end
+        self.explorationProb = exploration_start
         self.numIters = 0
         self.eligibility = eligibility
 
