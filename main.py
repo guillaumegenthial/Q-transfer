@@ -229,8 +229,7 @@ for target_name in TARGET_NAMES:
 
         fout.write("\t{}_direct\t{}\t+/-{}\t({} at training time)\n\n".format(name, evaluation, se, np.mean(training_rewards)))
 
-
-utils.plot_rewards(training_rewards_list, file_name="plots/{}_transfer_plots.png".format(EXP_NAME))
+    utils.plot_rewards(training_rewards_list, file_name="plots/{}_{}_transfer_plots.png".format(EXP_NAME, target_name))
 
 # save config parameters
 fout.write("\n# Config:\n" + "\n".join(

@@ -1,6 +1,11 @@
 EXP_NAME = "moreActions500_cleanSources"
 ENV = 'MountainCar-v0'
-TARGET_NAMES = ["more_actions"]
+TARGET_NAMES = [
+"more_actions", 
+"full_clean",
+"full",
+"full_energy"
+]
 SOURCE_NAMES = [
 "standard", 
 "bananas", 
