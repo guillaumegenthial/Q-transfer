@@ -46,6 +46,8 @@ class SimpleQLearning(object):
 
         self.el_traces = defaultdict(float)
 
+        # self.plt_mgr = PlotManager(title="reward")
+
     def normalize(self):
         """
         Normalizes weights so that there are between -1 and 1
@@ -148,6 +150,7 @@ class SimpleQLearning(object):
         Get the step size to update the weights.
         """
         return 0.1 
+
         # return 1.0 / math.sqrt(self.numIters)
 
     def resetElTraces(self):
@@ -182,16 +185,23 @@ class SimpleQLearning(object):
         for k,v in phi:
             self.weights[k] = self.weights[k] - self.getStepSize() * (gradient) * v
 
-    def _update(self, state, action, reward, newState, eligibility=False):
+
+    def _update(self, state, action, reward, newState, done, eligibility=False):
         # Compute gradient (update)
-        pred = self.evalQ(state, action)
         try:
             v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
         except:
             print "error"
             v_opt = 0.
 
-        target = reward + self.discount * v_opt
+        if done:
+            # should be just reward but Q learning does not converge???
+            target = reward
+            # target = reward + self.discount * v_opt
+        else:
+            target = reward + self.discount * v_opt
+
+        pred = self.evalQ(state, action)
         gradient = (pred - target)
 
         # perform update
@@ -205,7 +215,7 @@ class SimpleQLearning(object):
         """
         Learn the weights by running simulations
         """
-        plt_mgr = PlotManager(title="reward")
+
         totalRewards = []  # The rewards we get on each trial
         for trial in xrange(num_trials):
             # init
@@ -225,24 +235,25 @@ class SimpleQLearning(object):
                     env.render()
                 action = self.getAction(state)
                 newState, reward, done, info = env.step(action)
-                self._update(state, action, reward, newState, eligibility)
+                self._update(state, action, reward, newState, done, eligibility)
                 totalReward += totalDiscount * reward
                 totalDiscount *= self.discount
                 state = newState
-                print state
 
             totalRewards.append(totalReward)
             progress = self.progress(True)
 
             # plotting and printing
-            plt_mgr.add(name="Task {}, Reward".format(self.name), x=trial, y=totalReward)
-            plt_mgr.update()
+            # self.plt_mgr.add(name="Task {}, Reward".format(self.name), x=trial, y=totalReward)
+            # self.plt_mgr.update()
+
             sys.stdout.write(
                 "\rTrial nb %02d, total reward %.2f, progress %.2f, explo %.2f" %(
                     trial, totalReward, progress, self.explorationProb))
             sys.stdout.flush()
 
         print("\nAverage reward: {}".format(sum(totalRewards)/num_trials))
-        # plt_mgr.export("plots")
-        plt_mgr.close(force=True)
+        # self.plt_mgr.export("plots")
+        # self.plt_mgr.close(force=True)
+
         return totalRewards

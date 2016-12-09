@@ -1,129 +1,79 @@
+import sys, json
 import gym
+import base_rl
+import base_deep_rl
+import env_interaction
+import tasks
+import ensemble_rl
+import deep_rl
 import numpy as np
-import pickle
+import utils
 
-# evaluation
-def rollout(env, pol, gamma, max_t=100):
-    reward_total = 0
-    observation = env.reset()
-    for t in range(max_t):
-        action = pol(observation)
-        observation, reward, done, info = env.step(action)
-        reward_total = reward + gamma*reward_total
-        if done:
-            break
+# 0. Get config and arguments for experiment
+if len(sys.argv) > 1:
+    config = __import__(sys.argv[1].replace(".py", ""))
+else:
+    config = __import__("config")
 
-    return reward_total
-
-def policy_evaluation(env, pol, gamma=1, n_episode=1000, max_t=100):
-    r = 0
-    for i_episode in xrange(n_episode):
-        env.reset()
-        r += rollout(env, pol, gamma, max_t)
-
-    return r/n_episode
-
-# global approximation
-def beta(env, observation, N):
-    # returns indices of discretized states
-    features = []
-    for i, obs in enumerate(observation):
-        radius = (env.high[i] - env.low[i])
-        features += [int((obs-env.low[i])/radius*N)]
-    return features
-
-def explore(env, observation, N, theta, level=0.2):
-    # must return an action
-    eps = np.random.random()
-    if eps < level:
-        return env.action_space.sample()
-    else:
-        return np.argmax(Q(env, observation, N, theta))
-
-def Q(env, observation, N, theta):
-    # must return a vector q[action] = Q(observation, action)
-    b = beta(env, observation, N)
-    q = theta
-    for i in b:
-        q = q[i]
-    return q
-
-def global_approximation(env, alpha=0.1, gamma=1, N=10, theta=None):
-    # get number of features
-    observation = env.reset()
-    action = env.action_space.sample()
-    b = beta(env, observation, N)
-    # theta np array(a, N, N) (action, pos, speed)
-    if theta is None:
-        theta = np.random.random( [env.action_space.n]+[N]*len(b))
-    for i_episode in range(100):
-        observation = env.reset()
-        for t in range(100):
-            env.render()
-            action = explore(env, beta, theta, observation)
-            _observation, reward, done, info = env.step(action)
-            if t > 0:
-                r = reward + gamma*np.max(np.dot(theta, beta(_observation))) - np.dot(theta, beta(observation))[action]
-                theta[action] = theta[action] + alpha*r*beta(observation)
-            observation = _observation
-            if done:
-                print("Episode finished after {} timesteps".format(t+1))
-                break
-    return theta
+EXP_NAME                = config.EXP_NAME
+ENV                     = config.ENV
+TARGET_NAMES            = config.TARGET_NAMES
+SOURCE_NAMES            = config.SOURCE_NAMES
+VERBOSE                 = config.VERBOSE
+EXPLORATION_PROBA_START = config.EXPLORATION_PROBA_START
+EXPLORATION_PROBA_END   = config.EXPLORATION_PROBA_END
+MAX_ITER                = config.MAX_ITER
+NUM_TRIALS_SOURCES      = config.NUM_TRIALS_SOURCES
+NUM_TRIALS_TARGETS      = config.NUM_TRIALS_TARGETS
+NUM_TRIALS_EVAL         = config.NUM_TRIALS_EVAL
+RELOAD_WEIGHTS          = config.RELOAD_WEIGHTS
+DISCOUNT                = config.DISCOUNT
+ELIGIBILITY             = config.ELIGIBILITY
+TRAIN                   = config.TRAIN
+DEEP_MODES              = config.DEEP_MODES
 
 
-# playing
-def play(env):
-    for i_episode in range(20):
-        observation = env.reset()
-        for t in range(100):
-            env.render()
-            action = env.action_space.sample()
-            print action
-            observation, reward, done, info = env.step(action)
-            if done:
-                print("Episode finished after {} timesteps".format(t+1))
-                break
+env = gym.make(config.ENV)
+fout = open("results/{}_deep.txt".format(EXP_NAME), "wb", 0)
 
-def plot(env, theta, beta):
-    # plotting the Q function just to see
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    x, y, z = [], [], []
-    n = 10
-    pos = env.min_position
-    for i in range(n):
-        pos += (env.max_position - env.min_position)/n
-        vel = -env.max_speed
-        for i in range(n):
-            vel += 2*env.max_speed/n
-            q = np.dot(theta, beta(np.asarray([pos, vel])))[1]
-            x += [pos]
-            y += [vel]
-            z += [q]
-    ax.scatter(x, y, z)
-    ax.set_xlabel('Pos')
-    ax.set_ylabel('Speed')
-    ax.set_zlabel('Q value')
-    plt.show()
+# 1. train each source task separately
+SOURCES, TARGETS = tasks.SOURCES, tasks.TARGETS
 
-# env
-ENV = 'MountainCarContinuous-v0'
-env = gym.make(ENV)
-play(env)
-# env.set_mode(0)
-# gamma = 1
-# # test policy
-# # pol = lambda observation: 2
-# # with open("theta.pkl") as f:
-# #     theta = pickle.load(f)
-# theta = global_approximation(env)
-# with open("theta.pkl", "w") as f:
-#     pickle.dump(theta, f)
-# plot(env, theta, beta)
-# pol = lambda observation: np.argmax(np.dot(theta, beta(observation)))
-# evaluate policy
-# print policy_evaluation(env, pol)
+if TRAIN:
+    fout.write("# Sources performance\n")
+    for name, param in SOURCES.iteritems():
+        if name in SOURCE_NAMES:
+            print("\nTask {}".format(name))
+            env.set_task_params(param)
+            file_name = "weights/{}_{}.p".format(name, NUM_TRIALS_SOURCES)
 
+            rl = base_deep_rl.DeepQLearning(
+            name, 
+            range(env.action_space.n), 
+            DISCOUNT, 
+            exploration_start=.5,
+            exploration_end=0.1, 
+            weights=None, 
+            eligibility=0.9, 
+            reload_freq=20,
+            experience_replay_size=10000)
+
+            training_rewards = rl.train(
+                env=env, 
+                num_trials=NUM_TRIALS_SOURCES, 
+                max_iter=MAX_ITER, 
+                verbose=VERBOSE, 
+                eligibility=ELIGIBILITY,
+                )
+
+            rl.dump(file_name)
+
+            evaluation, se = env_interaction.policy_evaluation(
+                env=env, 
+                policy=rl.getPolicy(), 
+                discount=DISCOUNT,
+                num_trials=NUM_TRIALS_EVAL,
+                max_iter=MAX_ITER
+            )
+
+            fout.write("\t{}\t{}\t+/-{}\n".format(name, evaluation, se))
