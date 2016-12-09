@@ -59,6 +59,7 @@ class MountainCarEnv(gym.Env):
 
         # ------------ MODIFIED ------------
         self.set_task()
+        self._init()
         # -------------------------------
 
     def _init(self):
