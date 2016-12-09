@@ -13,7 +13,7 @@ import utils
 if len(sys.argv) > 1:
     config = __import__(sys.argv[1].replace(".py", ""))
 else:
-    config = __import__("config")
+    config = __import__("config_test")
 
 EXP_NAME                = config.EXP_NAME
 ENV                     = config.ENV
@@ -57,7 +57,8 @@ if TRAIN:
             weights=None, 
             eligibility=0.9, 
             reload_freq=RELOAD_FREQ,
-            experience_replay_size=10000)
+            experience_replay_size=10000,
+            env=env)
 
             training_rewards = rl.train(
                 env=env, 

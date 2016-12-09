@@ -55,7 +55,7 @@ class DeepQTransfer(SimpleQLearning):
 
         self.add_Q()
 
-        self.plt_mgr = PlotManager(title="reward")
+        # self.plt_mgr = PlotManager(title="reward")
 
     def default_load(self):
         # weights of network

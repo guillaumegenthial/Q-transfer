@@ -10,6 +10,10 @@ import base_rl
 import env_interaction
 from base_rl import SimpleQLearning
 
+import sklearn.preprocessing
+from sklearn.kernel_approximation import RBFSampler
+from sklearn.pipeline import FeatureUnion
+
 floatX = theano.config.floatX
 
 
@@ -24,7 +28,8 @@ class DeepQLearning(SimpleQLearning):
             eligibility=0.9, 
             reload_freq=1000,
             experience_replay_size=5000,
-            state_size=4):
+            state_size=4,
+            env=None):
 
         self.name = name
         self.actions = actions
@@ -51,6 +56,20 @@ class DeepQLearning(SimpleQLearning):
             self.params = collections.OrderedDict()
             # copy updated from time to time
             self.params_bak = collections.OrderedDict()
+
+        observation_examples = np.array([env.observation_space.sample() for x in range(100000)])
+
+        # Fit feature scaler
+        self.scaler = sklearn.preprocessing.StandardScaler()
+        self.scaler.fit(observation_examples)
+
+        # Fir feature extractor
+        self.feature_map = FeatureUnion([("rbf1", RBFSampler(n_components=100, gamma=1., random_state=1)),
+                                         ("rbf01", RBFSampler(n_components=100, gamma=0.1, random_state=1)),
+                                         ("rbf10", RBFSampler(n_components=100, gamma=10, random_state=1))])
+
+        #self.feature_map =
+        self.feature_map.fit(self.scaler.transform(observation_examples))
 
         self.add_Q()
 
@@ -162,10 +181,10 @@ class DeepQLearning(SimpleQLearning):
             return z
 
     def output(self, state, bak=False):
-       h1 = self.fully_connected("h1", state, self.state_size, 10, bak, "relu")
-       h2 = self.fully_connected("h2", h1, 10, 10, bak, "relu")
+       h1 = self.fully_connected("h1", state, 300, 512, bak, "relu")
+       h2 = self.fully_connected("h2", h1, 512, 256, bak, "relu")
 
-       output = self.fully_connected("out", h2, 10, len(self.actions), bak, None)
+       output = self.fully_connected("out", h2, 256, len(self.actions), bak, None)
 
        return output
 
@@ -222,8 +241,16 @@ class DeepQLearning(SimpleQLearning):
         """
         Evaluate Q-function for a given (`state`, `action`)
         """
+        state = self.process_state(state)
         q = self.Q_eval(state, action)
         return q
+
+    def process_state(self, state):
+        state = np.array([state])
+        state = self.scaler.transform(state)
+        state = self.feature_map.transform(state)
+        state = state.astype(np.float32)
+        return state[0]
 
     def prepare_data(self, samples):
         """
@@ -233,7 +260,7 @@ class DeepQLearning(SimpleQLearning):
         actions = []
         targets = []
         for (s, a, r, sp, d) in samples:
-            states.append(s)
+            states.append(self.process_state(s))
             actions.append(a)
             targets.append(self.target(r, sp, d))
 
@@ -280,6 +307,8 @@ class DeepQLearning(SimpleQLearning):
             
             # 4. update Q
             loss = self.Q_update(states, actions, targets)
+            if self.steps == 0:
+                print(targets[0])
             # self.plt_mgr.add("loss", loss)
             # self.plt_mgr.update()
 

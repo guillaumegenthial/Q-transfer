@@ -41,7 +41,7 @@ class EnsembleQLearning(SimpleQLearning):
         else:
             self.default_load()
 
-        self.plt_mgr = PlotManager(title="reward")
+        # self.plt_mgr = PlotManager(title="reward")
 
     def default_load(self):
         self.coefs = [1./self.n_sources] * self.n_sources        
@@ -81,12 +81,13 @@ class EnsembleQLearning(SimpleQLearning):
         return sum(self.coefs[i] * sources[i].evalQ(state, action) for i in xrange(self.n_sources))
 
     def getStepSize(self):
-        return 0.000001
+        return 0.0001
 
     def updateQ(self, state, action, gradient):
         for i in xrange(self.n_sources):
             self.coefs[i] = self.coefs[i] - self.getStepSize() * gradient * self.sources[i].evalQ(state, action)
 
+        self.print_coefs()
         self.normalize()
 
     def print_coefs(self):
