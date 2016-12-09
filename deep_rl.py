@@ -232,21 +232,19 @@ class DeepQTransfer(SimpleQLearning):
         # call Q_eval
         return self.Q_eval(q_values, state_action)
 
-    def _update(self, state, action, reward, newState, done, eligibility=False):
+    def _update(self, state, action, reward, newState, eligibility=False):
         """
         Update parameters for a transition
         """
         # compute target
-        if done:
-            target = np.array(reward)
-        else:
-            try:
-                v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
-            except:
-                print "error"
-                v_opt = 0.
 
-            target = np.array(reward + self.discount * v_opt)
+        try:
+            v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
+        except:
+            print "error"
+            v_opt = 0.
+
+        target = np.array(reward + self.discount * v_opt)
 
         # compute input data
         q_values, state_action = self.process_data(state, action)

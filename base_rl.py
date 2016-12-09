@@ -186,7 +186,7 @@ class SimpleQLearning(object):
             self.weights[k] = self.weights[k] - self.getStepSize() * (gradient) * v
 
 
-    def _update(self, state, action, reward, newState, done, eligibility=False):
+    def _update(self, state, action, reward, newState, eligibility=False):
         # Compute gradient (update)
         try:
             v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
@@ -194,12 +194,7 @@ class SimpleQLearning(object):
             print "error"
             v_opt = 0.
 
-        if done:
-            # should be just reward but Q learning does not converge???
-            target = reward
-            # target = reward + self.discount * v_opt
-        else:
-            target = reward + self.discount * v_opt
+        target = reward + self.discount * v_opt
 
         pred = self.evalQ(state, action)
         gradient = (pred - target)
@@ -235,7 +230,7 @@ class SimpleQLearning(object):
                     env.render()
                 action = self.getAction(state)
                 newState, reward, done, info = env.step(action)
-                self._update(state, action, reward, newState, done, eligibility)
+                self._update(state, action, reward, newState, eligibility)
                 totalReward += totalDiscount * reward
                 totalDiscount *= self.discount
                 state = newState
@@ -248,7 +243,7 @@ class SimpleQLearning(object):
             # self.plt_mgr.update()
 
             sys.stdout.write(
-                "\rTrial nb %02d, total reward %.2f, progress %.2f, explo %.2f" %(
+                "\rTrial nb %02d, total reward %5.2f, progress %.2f, explo %.2f" %(
                     trial, totalReward, progress, self.explorationProb))
             sys.stdout.flush()
 

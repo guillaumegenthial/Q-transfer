@@ -31,7 +31,8 @@ DISCOUNT                = config.DISCOUNT
 ELIGIBILITY             = config.ELIGIBILITY
 TRAIN                   = config.TRAIN
 DEEP_MODES              = config.DEEP_MODES
-
+RELOAD_FREQ             = config.RELOAD_FREQ
+EXPERIENCE_REPLAY_SIZE  = config.EXPERIENCE_REPLAY_SIZE
 
 env = gym.make(config.ENV)
 fout = open("results/{}_deep.txt".format(EXP_NAME), "wb", 0)
@@ -51,11 +52,11 @@ if TRAIN:
             name, 
             range(env.action_space.n), 
             DISCOUNT, 
-            exploration_start=.5,
-            exploration_end=0.1, 
+            exploration_start=EXPLORATION_PROBA_START,
+            exploration_end=EXPLORATION_PROBA_END, 
             weights=None, 
             eligibility=0.9, 
-            reload_freq=20,
+            reload_freq=RELOAD_FREQ,
             experience_replay_size=10000)
 
             training_rewards = rl.train(

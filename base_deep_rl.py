@@ -37,7 +37,7 @@ class DeepQLearning(SimpleQLearning):
         self.experience_replay_size = experience_replay_size
         self.experience_replay = []
         self.state_size = state_size
-        self.batch_size = 50
+        self.batch_size = 32
 
         # handle update from time to time for params for eval
         self.reload_freq = reload_freq
@@ -78,7 +78,7 @@ class DeepQLearning(SimpleQLearning):
         Adds transition to memory and remove first inserted element
         """
         if len(self.experience_replay) == self.experience_replay_size:
-            del self.experience_replay[0]
+            self.experience_replay.pop(0)
         elif len(self.experience_replay) > self.experience_replay_size:
             print "ERROR : memory replay should have size less than {}".format(self.experience_replay_size)
         else:
@@ -86,7 +86,7 @@ class DeepQLearning(SimpleQLearning):
             
         self.experience_replay.append((s, a, r, sp, d))
 
-        return len(self.experience_replay) == self.experience_replay_size
+        return len(self.experience_replay) >= 2*self.batch_size
 
     def sample_experience_replay(self, batch_size=2):
         """
@@ -162,8 +162,8 @@ class DeepQLearning(SimpleQLearning):
             return z
 
     def output(self, state, bak=False):
-       h1 = self.fully_connected("h1", state, self.state_size, 10, bak, "sigmoid")
-       h2 = self.fully_connected("h2", h1, 10, 10, bak, "sigmoid")
+       h1 = self.fully_connected("h1", state, self.state_size, 10, bak, "relu")
+       h2 = self.fully_connected("h2", h1, 10, 10, bak, "relu")
 
        output = self.fully_connected("out", h2, 10, len(self.actions), bak, None)
 
@@ -244,17 +244,13 @@ class DeepQLearning(SimpleQLearning):
         Computes r + discount * max_a (Q(sp, a))
         """
         # compute target
-        if d:
-            return np.array(r)
-        else:
-            try:
-                v_opt = max(self.evalQ(sp, new_a) for new_a in self.actions)
-            except:
-                print "error computing evalQ for target"
-                v_opt = 0.
+        try:
+            v_opt = max(self.evalQ(sp, new_a) for new_a in self.actions)
+        except:
+            print "error computing evalQ for target"
+            v_opt = 0.
 
-
-            return np.array(r + self.discount * v_opt)
+        return np.array(r + self.discount * v_opt)
 
 
     def _update(self, state, action, reward, newState, done, eligibility=False):
