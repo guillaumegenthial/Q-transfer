@@ -253,10 +253,10 @@ class MountainCarEnv(gym.Env):
         for (pos, wide, height) in self.bumps:
             if wide < min_wide:
                 min_wide = wide
-            if min_wide == 0:
-                return 1
-            else:
-                return min_wide
+        if min_wide == 0:
+            return 1
+        else:
+            return min_wide
 
     def _min_height(self):
         return (-1. + min(self._min_obstacle(), 0))*.45 + .55
