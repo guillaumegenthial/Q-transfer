@@ -61,6 +61,7 @@ class MountainCarEnv(gym.Env):
         self.set_task()
         # -------------------------------
 
+    def _init(self):
         self.low = np.array([self.min_position, -self.max_speed, self._min_height(), self._min_acceleration()])
         self.high = np.array([self.max_position, self.max_speed, self._max_height(), self._max_acceleration()])
 
@@ -72,8 +73,6 @@ class MountainCarEnv(gym.Env):
 
         self._seed()
         self.reset()
-
-     
 
 
     def _seed(self, seed=None):
@@ -116,6 +115,7 @@ class MountainCarEnv(gym.Env):
         self.set_reset_param(low, high)
         self.add_obstacles(obstacles)
         self.add_random_bananas(p, h)
+        self._init()
 
     def set_task_params(self, params):
         self.set_task(
