@@ -41,6 +41,8 @@ class EnsembleQLearning(SimpleQLearning):
         else:
             self.default_load()
 
+        self.plt_mgr = PlotManager(title="reward")
+
     def default_load(self):
         self.coefs = [1./self.n_sources] * self.n_sources        
 

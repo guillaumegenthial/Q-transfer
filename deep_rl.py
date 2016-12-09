@@ -5,6 +5,7 @@ import copy
 import theano
 import theano.tensor as T
 import base_rl
+from streamplot import PlotManager
 from base_rl import SimpleQLearning
 from ensemble_rl import EnsembleQLearning
 
@@ -53,6 +54,8 @@ class DeepQTransfer(SimpleQLearning):
         self.mode = mode
 
         self.add_Q()
+
+        self.plt_mgr = PlotManager(title="reward")
 
     def default_load(self):
         # weights of network
@@ -229,19 +232,21 @@ class DeepQTransfer(SimpleQLearning):
         # call Q_eval
         return self.Q_eval(q_values, state_action)
 
-    def _update(self, state, action, reward, newState, eligibility=False):
+    def _update(self, state, action, reward, newState, done, eligibility=False):
         """
         Update parameters for a transition
         """
         # compute target
-        # TODO : use old params for evalQ in target
-        try:
-            v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
-        except:
-            print "error"
-            v_opt = 0.
+        if done:
+            target = np.array(reward)
+        else:
+            try:
+                v_opt = max(self.evalQ(newState, new_a) for new_a in self.actions)
+            except:
+                print "error"
+                v_opt = 0.
 
-        target = np.array(reward + self.discount * v_opt)
+            target = np.array(reward + self.discount * v_opt)
 
         # compute input data
         q_values, state_action = self.process_data(state, action)

@@ -210,8 +210,10 @@ class PlotManager(object):
 		"""
 		Export all plots seperatly in the repo
 		"""
-		full_repo = "{}/{}".format(os.getcwd(), repo)
-		for name, plot in self.plots.iteritems():
-			plot.export(full_repo)
-		print("Successfully exported plots in {}".format(full_repo))
-		pass
+		try:
+			full_repo = "{}/{}".format(os.getcwd(), repo)
+			for name, plot in self.plots.iteritems():
+				plot.export(full_repo)
+			print("Successfully exported plots in {}".format(full_repo))
+		except Exception, e:
+			pass
