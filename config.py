@@ -17,7 +17,7 @@ SOURCE_NAMES = [
 "center", 
 "height", 
 "still",
-"more_actions"]
+"more_actions1"]
 VERBOSE = False
 EXPLORATION_PROBA_START = 1.
 EXPLORATION_PROBA_END = 0.1
@@ -28,6 +28,6 @@ NUM_TRIALS_EVAL = 1000
 RELOAD_WEIGHTS = False
 DISCOUNT = 1
 ELIGIBILITY = False
-TRAIN = False
+TRAIN = True
 DEEP_MODES = [1, 2]
 AVERAGE_TIMES = 1

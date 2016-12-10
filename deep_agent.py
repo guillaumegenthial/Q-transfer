@@ -196,8 +196,8 @@ class ReplayMemory(object):
         r = np.array([self.memory[i][2] for i in choices])
         sp = np.array([self.memory[i][3] for i in choices])
 
-        q_vals = agent.q_values(s)
-        target = r + (r <= 0).astype(int) * discount * np.amax(agent.q_values(sp), axis=1)
+        q_vals = self.agent.q_values(s)
+        target = r + (r <= 0).astype(int) * discount * np.amax(self.agent.q_values(sp), axis=1)
         for i in range(len(choices)):
             q_vals[i, a[i]] = target[i]
 
@@ -251,7 +251,7 @@ class DeepAgent(object):
             s = self.env.reset()
             done = False
             while not done:
-                a = agent.act(s)
+                a = self.act(s)
                 q_vals = self.q_values(s)
 
                 sp, r, done, info = env.step(a)
@@ -264,7 +264,7 @@ class DeepAgent(object):
                     self.learn(mem_states, mem_targets)
 
                 if steps % 50 == 0:
-                    print('Episode {}, Step {}, eps {}'.format(episode, steps, agent.eps))
+                    print('Episode {}, Step {}, eps {}'.format(episode, steps, self.eps))
 
                 if done or steps > max_steps_per_episode:
                     print("Episode finished after {} timesteps".format(steps))
@@ -273,22 +273,22 @@ class DeepAgent(object):
                 s = sp
                 steps += 1
 
-                if agent.eps >= 0.01 and steps % 10000 == 0:
-                    agent.eps *= 0.9
+                if self.eps >= 0.01 and steps % 10000 == 0:
+                    self.eps *= 0.9
 
-            if agent.eps >= 0.0:
-                agent.eps *= 0.9
+            if self.eps >= 0.0:
+                self.eps *= 0.9
 
+if file.__name__ == "__main__":
+    env_name = 'MountainCar-v0'
+    file_name = "deep_agent_transform.p"
+    env = gym.make(env_name)
+    agent = DeepAgent(env, eps=0.2, learning_rate=0.0001, transform=True)
+    agent.load(file_name)
+    agent.train(n_episodes=100, max_steps_per_episode=20000)
+    agent.dump(file_name)
+    evaluation, se = env_interaction.policy_evaluation(
+                    env=env, 
+                    policy=agent.get_policy())
 
-env_name = 'MountainCar-v0'
-file_name = "deep_agent_transform.p"
-env = gym.make(env_name)
-agent = DeepAgent(env, eps=0.2, learning_rate=0.0001, transform=True)
-agent.load(file_name)
-agent.train(n_episodes=100, max_steps_per_episode=20000)
-agent.dump(file_name)
-evaluation, se = env_interaction.policy_evaluation(
-                env=env, 
-                policy=agent.get_policy())
-
-print evaluation
+    print evaluation
