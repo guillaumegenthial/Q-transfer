@@ -81,7 +81,7 @@ class EnsembleQLearning(SimpleQLearning):
         return sum(self.coefs[i] * sources[i].evalQ(state, action) for i in xrange(self.n_sources))
 
     def getStepSize(self):
-        return 0.001
+        return 0.01
 
     def updateQ(self, state, action, gradient):
         for i in xrange(self.n_sources):

@@ -30,6 +30,7 @@ DISCOUNT                = config.DISCOUNT
 ELIGIBILITY             = config.ELIGIBILITY
 TRAIN                   = config.TRAIN
 DEEP_MODES              = config.DEEP_MODES
+AVERAGE_TIMES           = config.AVERAGE_TIMES
 
 env = gym.make(config.ENV)
 fout = open("results/{}.txt".format(EXP_NAME), "wb", 0)
@@ -109,130 +110,136 @@ for target_name in TARGET_NAMES:
         print "\n\n{} trials".format(num_trials)
         if i == len(NUM_TRIALS_TARGETS)-1:
             training_rewards_list = []
+            n_av = AVERAGE_TIMES
+        else:
+            n_av = 1
 
-        ########## NEURAL NETWORK IMPLEMENTATION #########
-        print "\nDeep transfer"
-        for deep_mode in DEEP_MODES:
-            name = "{}_deep_{}".format(target_name, deep_mode)
+        for av in xrange(n_av):
+
+            ########## NEURAL NETWORK IMPLEMENTATION #########
+            print "\nDeep transfer"
+            for deep_mode in DEEP_MODES:
+                name = "{}_deep_{}".format(target_name, deep_mode)
+                file_name = "weights/{}_{}.p".format(name, num_trials)
+
+                rl_deep = deep_rl.DeepQTransfer(
+                    name=name, 
+                    sources=sources, 
+                    actions=range(env.action_space.n), 
+                    discount=DISCOUNT, 
+                    weights=file_name,
+                    mode=deep_mode,
+                    exploration_start=EXPLORATION_PROBA_START,
+                    exploration_end=EXPLORATION_PROBA_END, 
+                    eligibility=ELIGIBILITY,
+                    reload_weights=RELOAD_WEIGHTS
+                )
+
+                training_rewards = rl_deep.train(
+                    env, 
+                    num_trials=num_trials, 
+                    max_iter=MAX_ITER, 
+                    verbose=VERBOSE
+                )
+                if i == len(NUM_TRIALS_TARGETS)-1:
+                    training_rewards_list.append((name, training_rewards))
+
+                rl_deep.dump(file_name)
+
+                evaluation, se = env_interaction.policy_evaluation(
+                    env=env, 
+                    policy=rl_deep.getPolicy(), 
+                    discount=DISCOUNT,
+                    num_trials=NUM_TRIALS_EVAL,
+                    max_iter=MAX_ITER
+                )
+
+                fout.write("\t{}\t{}\t+/-{}\t({} at training time)\n".format(name, evaluation, se, np.mean(training_rewards)))
+
+
+            ########## LINEAR TRANSFER IMPLEMENTATION #########
+            print "\nLinear transfer"
+            name = "{}_linear".format(target_name)
             file_name = "weights/{}_{}.p".format(name, num_trials)
 
-            rl_deep = deep_rl.DeepQTransfer(
+            rl_ens = ensemble_rl.EnsembleQLearning(
                 name=name, 
                 sources=sources, 
                 actions=range(env.action_space.n), 
-                discount=DISCOUNT, 
+                discount=DISCOUNT,
                 weights=file_name,
-                mode=deep_mode,
                 exploration_start=EXPLORATION_PROBA_START,
                 exploration_end=EXPLORATION_PROBA_END, 
                 eligibility=ELIGIBILITY,
-                reload_weights=RELOAD_WEIGHTS
+                reload_weights=RELOAD_WEIGHTS, 
             )
 
-            training_rewards = rl_deep.train(
+            rl_ens.preliminaryCheck(np.array([-0.5, 0]),0)
+
+            training_rewards = rl_ens.train(
                 env, 
                 num_trials=num_trials, 
                 max_iter=MAX_ITER, 
                 verbose=VERBOSE
             )
+
             if i == len(NUM_TRIALS_TARGETS)-1:
                 training_rewards_list.append((name, training_rewards))
 
-            rl_deep.dump(file_name)
+
+            rl_ens.dump(file_name)
 
             evaluation, se = env_interaction.policy_evaluation(
                 env=env, 
-                policy=rl_deep.getPolicy(), 
+                policy=rl_ens.getPolicy(), 
                 discount=DISCOUNT,
                 num_trials=NUM_TRIALS_EVAL,
                 max_iter=MAX_ITER
             )
 
+
             fout.write("\t{}\t{}\t+/-{}\t({} at training time)\n".format(name, evaluation, se, np.mean(training_rewards)))
 
+            ########## LEARNING FROM SCRATCH #########
+            print "\nLearning from scratch"
+            name = "{}_direct".format(target_name)
+            file_name = "weights/{}_{}.p".format(name, num_trials)
 
-        ########## LINEAR TRANSFER IMPLEMENTATION #########
-        print "\nLinear transfer"
-        name = "{}_linear".format(target_name)
-        file_name = "weights/{}_{}.p".format(name, num_trials)
+            rl = base_rl.SimpleQLearning(
+                name=name, 
+                actions=range(env.action_space.n), 
+                discount=DISCOUNT, 
+                discreteExtractor=discreteExtractor, 
+                featureExtractor=featureExtractor, 
+                exploration_start=EXPLORATION_PROBA_START,
+                exploration_end=EXPLORATION_PROBA_END, 
+                weights=file_name, 
+                reload_weights=RELOAD_WEIGHTS
+                )
 
-        rl_ens = ensemble_rl.EnsembleQLearning(
-            name=name, 
-            sources=sources, 
-            actions=range(env.action_space.n), 
-            discount=DISCOUNT,
-            weights=file_name,
-            exploration_start=EXPLORATION_PROBA_START,
-            exploration_end=EXPLORATION_PROBA_END, 
-            eligibility=ELIGIBILITY,
-            reload_weights=RELOAD_WEIGHTS, 
-        )
+            training_rewards = rl.train(
+                env=env, 
+                num_trials=num_trials, 
+                max_iter=MAX_ITER, 
+                verbose=VERBOSE, 
+                eligibility=ELIGIBILITY,
+                )
 
-        rl_ens.preliminaryCheck(np.array([-0.5, 0]),0)
+            if i == len(NUM_TRIALS_TARGETS)-1:
+                training_rewards_list.append((name, training_rewards))
 
-        training_rewards = rl_ens.train(
-            env, 
-            num_trials=num_trials, 
-            max_iter=MAX_ITER, 
-            verbose=VERBOSE
-        )
+            rl.normalize()
+            rl.dump(file_name)
 
-        if i == len(NUM_TRIALS_TARGETS)-1:
-            training_rewards_list.append((name, training_rewards))
-
-
-        rl_ens.dump(file_name)
-
-        evaluation, se = env_interaction.policy_evaluation(
-            env=env, 
-            policy=rl_ens.getPolicy(), 
-            discount=DISCOUNT,
-            num_trials=NUM_TRIALS_EVAL,
-            max_iter=MAX_ITER
-        )
-
-        fout.write("\t{}\t{}\t+/-{}\t({} at training time)\n".format(name, evaluation, se, np.mean(training_rewards)))
-
-        ########## LEARNING FROM SCRATCH #########
-        print "\nLearning from scratch"
-        name = "{}_direct".format(target_name)
-        file_name = "weights/{}_{}.p".format(name, num_trials)
-
-        rl = base_rl.SimpleQLearning(
-            name=name, 
-            actions=range(env.action_space.n), 
-            discount=DISCOUNT, 
-            discreteExtractor=discreteExtractor, 
-            featureExtractor=featureExtractor, 
-            exploration_start=EXPLORATION_PROBA_START,
-            exploration_end=EXPLORATION_PROBA_END, 
-            weights=file_name, 
-            reload_weights=RELOAD_WEIGHTS
+            evaluation, se = env_interaction.policy_evaluation(
+                env=env, 
+                policy=rl.getPolicy(), 
+                discount=DISCOUNT,
+                num_trials=NUM_TRIALS_EVAL,
+                max_iter=MAX_ITER
             )
 
-        training_rewards = rl.train(
-            env=env, 
-            num_trials=num_trials, 
-            max_iter=MAX_ITER, 
-            verbose=VERBOSE, 
-            eligibility=ELIGIBILITY,
-            )
-
-        if i == len(NUM_TRIALS_TARGETS)-1:
-            training_rewards_list.append((name, training_rewards))
-
-        rl.normalize()
-        rl.dump(file_name)
-
-        evaluation, se = env_interaction.policy_evaluation(
-            env=env, 
-            policy=rl.getPolicy(), 
-            discount=DISCOUNT,
-            num_trials=NUM_TRIALS_EVAL,
-            max_iter=MAX_ITER
-        )
-
-        fout.write("\t{}_direct\t{}\t+/-{}\t({} at training time)\n\n".format(name, evaluation, se, np.mean(training_rewards)))
+            fout.write("\t{}_direct\t{}\t+/-{}\t({} at training time)\n\n".format(name, evaluation, se, np.mean(training_rewards)))
 
     utils.plot_rewards(training_rewards_list, file_name="plots/{}_{}_transfer_plots.png".format(EXP_NAME, target_name))
 

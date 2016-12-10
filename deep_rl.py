@@ -40,6 +40,7 @@ class DeepQTransfer(SimpleQLearning):
         self.explorationProb = exploration_start        
         self.numIters = 0
         self.eligibility = eligibility
+        self.lr = 0.001
 
         if weights and reload_weights:
             self.load(weights)
@@ -90,9 +91,26 @@ class DeepQTransfer(SimpleQLearning):
 
     def init(self, size, init="uniform"):
         if init == "uniform":
-            return np.random.uniform(low=0, high=0.0005, size=size)
+            return np.random.uniform(low=-0.5, high=0.5, size=size)
         elif init == "ones":
             return 0.05*np.ones(size)
+        elif init == "glorot":
+            return self.glorot_normal(size)
+        elif init == "zeros":
+            return np.zeros(size)
+        else:
+            print "unknown initialization method"
+            raise
+
+    def glorot_normal(self, size, dim_ordering='th'):
+        fan_in, fan_out = size[0], size[1]
+        s = np.sqrt(2. / (fan_in + fan_out))
+        return self.normal(size, s)
+
+    def normal(self, size, scale=0.05):
+        if scale is None:
+            scale = 0.05
+        return np.random.normal(loc=0.0, scale=scale, size=size)
 
     def parameter_matrix(self, name, size=None, bak=False, weights=None, init="uniform"):
         if name not in self.params:
@@ -169,6 +187,23 @@ class DeepQTransfer(SimpleQLearning):
 
         return output
 
+    def rmsprop(self, cost):
+        grads = T.grad(cost, self.params.values())
+        nn_updates = []    
+
+        self.accu = collections.OrderedDict()
+        for name, shared_variable in self.params.iteritems():
+            w = shared_variable.get_value(borrow=True)
+            w = np.zeros_like(w)
+            self.accu[name] = theano.shared(w.astype(floatX), name)
+
+        for p, g, acc, in zip(self.params.values(), grads, self.accu.values()):
+            new_acc = 0.9*acc + 0.1*g**2
+            nn_updates.append((acc, new_acc))
+            nn_updates.append((p, p - self.lr * g / T.sqrt(new_acc + 1e-6)))
+
+        return nn_updates
+
     def add_Q(self):
         """
         Adds 2 functions to the class
@@ -198,9 +233,11 @@ class DeepQTransfer(SimpleQLearning):
         grads = T.grad(loss, self.params.values())
 
         # get updates
-        updates = []
-        for p, g in zip(self.params.values(), grads):
-            updates.append((p, p - 0.000001 * g))
+        # updates = []
+        # for p, g in zip(self.params.values(), grads):
+        #     updates.append((p, p - 0.000001 * g))
+
+        updates = self.rmsprop(loss)
 
         # define function
         self.Q_update = theano.function(
