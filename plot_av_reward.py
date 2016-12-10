@@ -58,77 +58,44 @@ for name, param in SOURCES.iteritems():
         ))
 
 # 3. train Targets from sources with different values of num_trials
-num_trials = 10
+num_trials = 3
 n = 2
-for target_name in TARGET_NAMES:
-    param = TARGETS[target_name]
-    env.set_task_params(param)
+target_name = "more_actions"
+param = TARGETS[target_name]
+env.set_task_params(param)
 
-    print "\n\n{} trials".format(num_trials)
+print "\n\n{} trials".format(num_trials)
 
 
-    training_rewards_all = {}
+training_rewards_all = {}
 
-    for av in xrange(n):
-        ########## NEURAL NETWORK IMPLEMENTATION #########
-        print "\nDeep transfer"
-        for deep_mode in DEEP_MODES:
-            name = "{}_deep_{}".format(target_name, deep_mode)
-            file_name = "weights/{}_{}.p".format(name, num_trials)
-
-            rl_deep = deep_rl.DeepQTransfer(
-                name=name, 
-                sources=sources, 
-                actions=range(env.action_space.n), 
-                discount=DISCOUNT, 
-                weights=file_name,
-                mode=deep_mode,
-                exploration_start=EXPLORATION_PROBA_START,
-                exploration_end=EXPLORATION_PROBA_END, 
-                eligibility=ELIGIBILITY,
-                reload_weights=RELOAD_WEIGHTS
-            )
-
-            training_rewards = rl_deep.train(
-                env, 
-                num_trials=num_trials, 
-                max_iter=MAX_ITER, 
-                verbose=VERBOSE
-            )
-            
-            training_rewards = np.array(training_rewards)
-
-            if av == 0:
-                training_rewards_all[name] = training_rewards
-            else:
-                training_rewards_all[name] += training_rewards
-
-        ########## LINEAR TRANSFER IMPLEMENTATION #########
-        print "\nLinear transfer"
-        name = "{}_linear".format(target_name)
+for av in xrange(n):
+    ########## NEURAL NETWORK IMPLEMENTATION #########
+    print "\nDeep transfer"
+    for deep_mode in DEEP_MODES:
+        name = "{}_deep_{}".format(target_name, deep_mode)
         file_name = "weights/{}_{}.p".format(name, num_trials)
 
-        rl_ens = ensemble_rl.EnsembleQLearning(
+        rl_deep = deep_rl.DeepQTransfer(
             name=name, 
             sources=sources, 
             actions=range(env.action_space.n), 
-            discount=DISCOUNT,
+            discount=DISCOUNT, 
             weights=file_name,
+            mode=deep_mode,
             exploration_start=EXPLORATION_PROBA_START,
             exploration_end=EXPLORATION_PROBA_END, 
             eligibility=ELIGIBILITY,
-            reload_weights=RELOAD_WEIGHTS, 
+            reload_weights=RELOAD_WEIGHTS
         )
 
-        rl_ens.preliminaryCheck(np.array([-0.5, 0]),0)
-
-        training_rewards = rl_ens.train(
+        training_rewards = rl_deep.train(
             env, 
             num_trials=num_trials, 
             max_iter=MAX_ITER, 
             verbose=VERBOSE
         )
-
+        
         training_rewards = np.array(training_rewards)
 
         if av == 0:
@@ -136,40 +103,73 @@ for target_name in TARGET_NAMES:
         else:
             training_rewards_all[name] += training_rewards
 
-        ########## LEARNING FROM SCRATCH #########
-        print "\nLearning from scratch"
-        name = "{}_direct".format(target_name)
-        file_name = "weights/{}_{}.p".format(name, num_trials)
+    ########## LINEAR TRANSFER IMPLEMENTATION #########
+    print "\nLinear transfer"
+    name = "{}_linear".format(target_name)
+    file_name = "weights/{}_{}.p".format(name, num_trials)
 
-        rl = base_rl.SimpleQLearning(
-            name=name, 
-            actions=range(env.action_space.n), 
-            discount=DISCOUNT, 
-            discreteExtractor=discreteExtractor, 
-            featureExtractor=featureExtractor, 
-            exploration_start=EXPLORATION_PROBA_START,
-            exploration_end=EXPLORATION_PROBA_END, 
-            weights=file_name, 
-            reload_weights=RELOAD_WEIGHTS
-            )
+    rl_ens = ensemble_rl.EnsembleQLearning(
+        name=name, 
+        sources=sources, 
+        actions=range(env.action_space.n), 
+        discount=DISCOUNT,
+        weights=file_name,
+        exploration_start=EXPLORATION_PROBA_START,
+        exploration_end=EXPLORATION_PROBA_END, 
+        eligibility=ELIGIBILITY,
+        reload_weights=RELOAD_WEIGHTS, 
+    )
 
-        training_rewards = rl.train(
-            env=env, 
-            num_trials=num_trials, 
-            max_iter=MAX_ITER, 
-            verbose=VERBOSE, 
-            eligibility=ELIGIBILITY,
-            )
+    rl_ens.preliminaryCheck(np.array([-0.5, 0]),0)
 
-        training_rewards = np.array(training_rewards)
+    training_rewards = rl_ens.train(
+        env, 
+        num_trials=num_trials, 
+        max_iter=MAX_ITER, 
+        verbose=VERBOSE
+    )
 
-        if av == 0:
-            training_rewards_all[name] = training_rewards
-        else:
-            training_rewards_all[name] += training_rewards
+    training_rewards = np.array(training_rewards)
+
+    if av == 0:
+        training_rewards_all[name] = training_rewards
+    else:
+        training_rewards_all[name] += training_rewards
+
+    ########## LEARNING FROM SCRATCH #########
+    print "\nLearning from scratch"
+    name = "{}_direct".format(target_name)
+    file_name = "weights/{}_{}.p".format(name, num_trials)
+
+    rl = base_rl.SimpleQLearning(
+        name=name, 
+        actions=range(env.action_space.n), 
+        discount=DISCOUNT, 
+        discreteExtractor=discreteExtractor, 
+        featureExtractor=featureExtractor, 
+        exploration_start=EXPLORATION_PROBA_START,
+        exploration_end=EXPLORATION_PROBA_END, 
+        weights=file_name, 
+        reload_weights=RELOAD_WEIGHTS
+        )
+
+    training_rewards = rl.train(
+        env=env, 
+        num_trials=num_trials, 
+        max_iter=MAX_ITER, 
+        verbose=VERBOSE, 
+        eligibility=ELIGIBILITY,
+        )
+
+    training_rewards = np.array(training_rewards)
+
+    if av == 0:
+        training_rewards_all[name] = training_rewards
+    else:
+        training_rewards_all[name] += training_rewards
 
 
-    training_rewards_list = [(name, training_rewards*1/float(n)) for name, training_rewards in training_rewards_all.iteritems()]
-    utils.plot_rewards(training_rewards_list, file_name="plots/{}_{}_transfer_plots_averaged.png".format(EXP_NAME, target_name))
+training_rewards_list = [(name, training_rewards*1/float(n)) for name, training_rewards in training_rewards_all.iteritems()]
+utils.plot_rewards(training_rewards_list, file_name="plots/{}_{}_transfer_plots_averaged.png".format(EXP_NAME, target_name))
 
 

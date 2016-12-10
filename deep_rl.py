@@ -25,7 +25,8 @@ class DeepQTransfer(SimpleQLearning):
         eligibility=0.9, 
         reload_weights=False,
         reload_freq=10, 
-        mode=0,):
+        mode=0,
+        lr=0.001):
         """
         `actions` is the list of possible actions at any state
         `sources` a list of source SimpleQLearning
@@ -40,7 +41,7 @@ class DeepQTransfer(SimpleQLearning):
         self.explorationProb = exploration_start        
         self.numIters = 0
         self.eligibility = eligibility
-        self.lr = 0.001
+        self.lr = lr
 
         if weights and reload_weights:
             self.load(weights)
@@ -179,8 +180,21 @@ class DeepQTransfer(SimpleQLearning):
             alpha = self.fully_connected("alpha", h2, self.n_sources*2, self.n_sources, bak, "sigmoid")
             # weight each input q value
             q_values_pond = q_values * alpha
-            h3 = self.fully_connected("h3", q_values_pond, self.n_sources, self.n_sources*2, bak, "sigmoid")
-            output = self.fully_connected("out", h3, self.n_sources*2, 1, bak, "sigmoid").sum()
+            h3 = self.fully_connected("h3", q_values_pond, self.n_sources, self.n_sources*2, bak, "relu")
+            h4 = self.fully_connected("h4", q_values_pond, self.n_sources*2, self.n_sources, bak, "relu")
+            output = self.fully_connected("out", h4, self.n_sources, 1, bak, None).sum()
+
+        elif self.mode == 3:
+            # computes attention with coefficient as for mode 1
+            # computes coefficients as functions of state_action
+            h1 = self.fully_connected("h1", state_action, 3, self.n_sources*2, bak, "relu")
+            h2 = self.fully_connected("h2", h1, self.n_sources*2, self.n_sources*2, bak, "relu")
+            alpha = self.fully_connected("alpha", h2, self.n_sources*2, self.n_sources, bak, "relu")
+            # weight each input q value
+            q_values_pond = q_values * alpha
+            h3 = self.fully_connected("h3", q_values_pond, self.n_sources, self.n_sources*2, bak, "relu")
+            h4 = self.fully_connected("h4", q_values_pond, self.n_sources*2, self.n_sources, bak, "relu")
+            output = self.fully_connected("out", h4, self.n_sources, 1, bak, None).sum()
 
         else:
             print("ERROR mode {} is unknown".format(self.mode))

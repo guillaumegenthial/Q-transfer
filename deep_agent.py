@@ -1,5 +1,6 @@
 import gym
 import numpy as np
+import time
 import theano
 import theano.tensor as T
 import sklearn.preprocessing
@@ -11,9 +12,23 @@ from sklearn.pipeline import FeatureUnion
 
 floatX = theano.config.floatX
 
+class Extractor(object):
+    def __init__(self, env):
+        observation_examples = np.array([env.observation_space.sample() for x in range(100000)])
+        self.scaler = sklearn.preprocessing.StandardScaler()
+        self.scaler.fit(observation_examples)
+        # Fit feature extractor
+        self.feature_map = FeatureUnion([("rbf1", RBFSampler(n_components=100, gamma=1., random_state=1)),
+                                         ("rbf01", RBFSampler(n_components=100, gamma=0.1, random_state=1)),
+                                         ("rbf10", RBFSampler(n_components=100, gamma=10, random_state=1))])
+        self.feature_map.fit(self.scaler.transform(observation_examples))
+
+
+
+
 
 class ValueFunctionApproximator(object):
-    def __init__(self, env, batch_size, learning_rate, transform=False):
+    def __init__(self, env, batch_size, learning_rate, transform=False, extractor=None):
         self.nA = env.action_space.n
         self.sS = env.observation_space.shape[0]
         self.batch_size = batch_size
@@ -25,14 +40,11 @@ class ValueFunctionApproximator(object):
 
         if transform:
             # Fit feature scaler
-            observation_examples = np.array([env.observation_space.sample() for x in range(100000)])
-            self.scaler = sklearn.preprocessing.StandardScaler()
-            self.scaler.fit(observation_examples)
-            # Fit feature extractor
-            self.feature_map = FeatureUnion([("rbf1", RBFSampler(n_components=100, gamma=1., random_state=1)),
-                                             ("rbf01", RBFSampler(n_components=100, gamma=0.1, random_state=1)),
-                                             ("rbf10", RBFSampler(n_components=100, gamma=10, random_state=1))])
-            self.feature_map.fit(self.scaler.transform(observation_examples))
+            if extractor:
+                self.extractor = extractor
+            else:
+                self.extractor = Extractor(env)
+            
 
         self._init_model()
 
@@ -55,6 +67,13 @@ class ValueFunctionApproximator(object):
                                        [nn_y, nn_cost],
                                        updates=nn_updates)
 
+    def get_last_hidden_layer(self, nn_x):
+        # theano implementation
+        nn_lh2 = self.fully_connected("nn_lh2", nn_x, self.input_size, 512, "relu")
+        nn_lh3 = self.fully_connected("nn_lh3", nn_lh2, 512, 256, "relu")
+
+        return nn_lh3
+
     def rmsprop(self, cost):
         grads = T.grad(cost, self.params.values())
         nn_updates = []    
@@ -72,10 +91,9 @@ class ValueFunctionApproximator(object):
 
         return nn_updates
 
-
     def dump(self, file_name):
         import pickle
-        d = {"params": self.params, "scaler": self.scaler, "feature_map": self.feature_map}
+        d = {"params": self.params, "extractor": self.extractor}
         with open(file_name, "wb") as fout:
             pickle.dump(d, fout)
         print("Dumped value function weights in {}".format(file_name))
@@ -85,13 +103,12 @@ class ValueFunctionApproximator(object):
         with open(file_name, "rb") as fin:
             d = pickle.load(fin)
         self.params = d["params"]
-        self.scaler = d["scaler"]
-        self.feature_map = d["feature_map"]
+        self.extractor = d["extractor"]
 
         print("Loaded value function weights from {}".format(file_name))
 
     def _scale_state(self, s_float32):
-        return self.scaler.transform(s_float32)
+        return self.extractor.scaler.transform(s_float32)
 
     def _process_state(self, s_float32):
         if len(s_float32.shape) == 1:
@@ -100,7 +117,7 @@ class ValueFunctionApproximator(object):
             raise RuntimeError('Input should be an 2d-array or row-vector.')
         if self.transform:
             s_float32 = self._scale_state(s_float32)
-            s_float32 = self.feature_map.transform(s_float32)
+            s_float32 = self.extractor.feature_map.transform(s_float32)
             s_float32 = s_float32.astype(np.float32)
         return s_float32
 
@@ -130,8 +147,8 @@ class ValueFunctionApproximator(object):
             raise
 
     def parameter_matrix(self, name, size=None, weights=None, init="uniform"):
-        print "Initializing {} with shape {}".format(name, size)
         if name not in self.params:
+            print "Initializing {} with shape {}".format(name, size)
             if weights:
                 self.params[name] = theano.shared(weights.astype(floatX), name)
             else:
@@ -175,6 +192,69 @@ class ValueFunctionApproximator(object):
         else:
             return z
     
+class ValueFunctionTransfer(ValueFunctionApproximator):
+    def __init__(self, env, sources, batch_size, learning_rate, transform=False, extractor=None):
+        self.sources = sources
+        self.nA = env.action_space.n
+        self.sS = env.observation_space.shape[0]
+        self.batch_size = batch_size
+        self.lr = theano.shared(np.float32(learning_rate))
+        self.env = env
+        self.input_size = 300 if transform else len(env.observation_space.sample())
+        self.hidden_layer_size = 256
+        self.params = collections.OrderedDict()
+        self.transform = transform
+
+        if transform:
+            # Fit feature scaler
+            if extractor:
+                self.extractor = extractor
+            else:
+                self.extractor = self.sources[0].value_function.extractor
+
+        self._init_model()
+
+    def dump(self, file_name):
+        import pickle
+        d = {"params": self.params, "extractor": self.extractor, "sources": self.sources}
+        with open(file_name, "wb") as fout:
+            pickle.dump(d, fout)
+        print("Dumped value function weights in {}".format(file_name))
+
+    def load(self, file_name):
+        import pickle
+        with open(file_name, "rb") as fin:
+            d = pickle.load(fin)
+        self.params = d["params"]
+        self.extractor = d["extractor"]
+        self.sources = d["sources"]
+
+        print("Loaded value function weights from {}".format(file_name))
+
+    def _init_model(self):
+        nn_x, nn_z = T.matrices('x', 'z')
+
+        inputs = []
+        for s in self.sources:
+            inputs.append(s.value_function.get_last_hidden_layer(nn_x))
+
+        inputs = T.concatenate(inputs, axis=1)
+
+
+        # theano implementation
+        nn_lh2 = self.fully_connected("transfer_nn_lh2", inputs, self.hidden_layer_size*len(self.sources), 512, "relu")
+        nn_lh3 = self.fully_connected("transfer_nn_lh3", nn_lh2, 512, 256, "relu")
+        nn_y = self.fully_connected("transfer_nn_y", nn_lh3, 256, self.nA,  None)
+
+        self.f_predict = theano.function([nn_x], nn_y)
+
+        nn_cost = T.sum(T.sqr(nn_y - nn_z))
+
+        nn_updates = self.rmsprop(nn_cost)
+
+        self.f_train = theano.function([nn_x, nn_z],
+                                       [nn_y, nn_cost],
+                                       updates=nn_updates)
 
 class ReplayMemory(object):
     def __init__(self, agent, capacity):
@@ -205,14 +285,14 @@ class ReplayMemory(object):
 
 
 class DeepAgent(object):
-    def __init__(self, env, eps=1.0, learning_rate=0.1, transform=False, value_function=None):
+    def __init__(self, env, eps=1.0, learning_rate=0.1, transform=False, value_function=None, extractor=None):
         self.env = env
         self.nA = env.action_space.n
         self.eps = eps
         if value_function:
             self.value_function = value_function
         else:
-            self.value_function = ValueFunctionApproximator(env, 32, learning_rate, transform)
+            self.value_function = ValueFunctionApproximator(env, 32, learning_rate, transform, extractor)
         self.memory = ReplayMemory(self, 100000)
         self.discount = 1.0
 
@@ -224,10 +304,6 @@ class DeepAgent(object):
             return np.random.randint(0, self.nA)
         else:
             return np.argmax(self.value_function.predict(s))
-
-    def estimate(self, s, a):
-        prediction = self.value_function.predict(s)[0]
-        return prediction[a]
 
     def learn(self, s, targets):
         self.value_function.train(s, targets, [])
@@ -241,10 +317,11 @@ class DeepAgent(object):
     def get_policy(self):
         return lambda s : np.argmax(self.value_function.predict(s))
 
-    def train(self, n_episodes=100, max_steps_per_episode=20000):
+    def train(self, n_episodes=100, max_steps_per_episode=20000, max_time=600):
         env = self.env
         discount = self.discount
         memory = self.memory
+        t0 = time.time()
 
         for episode in range(n_episodes):
             steps = 0
@@ -276,8 +353,31 @@ class DeepAgent(object):
                 if self.eps >= 0.01 and steps % 10000 == 0:
                     self.eps *= 0.9
 
+            if time.time() - t0 > max_time:
+                print("Max time elapsed, stopping.")
+                break
+
             if self.eps >= 0.0:
                 self.eps *= 0.9
+
+
+class deepTransferAgent(DeepAgent):
+    def __init__(self, env, sources, eps=1.0, learning_rate=0.1, transform=False):
+        self.env = env
+        self.nA = env.action_space.n
+        self.eps = eps
+        self.memory = ReplayMemory(self, 100000)
+        self.discount = 1.0
+        self.value_function = ValueFunctionTransfer(env, sources, 32, learning_rate, transform)
+
+    def dump(self, file_name):
+        self.value_function.dump(file_name)
+
+    def load(self, file_name):
+        self.value_function.load(file_name)
+
+
+
 
 if file.__name__ == "__main__":
     env_name = 'MountainCar-v0'
@@ -285,8 +385,8 @@ if file.__name__ == "__main__":
     env = gym.make(env_name)
     agent = DeepAgent(env, eps=0.2, learning_rate=0.0001, transform=True)
     agent.load(file_name)
-    agent.train(n_episodes=100, max_steps_per_episode=20000)
-    agent.dump(file_name)
+    # agent.train(n_episodes=100, max_steps_per_episode=20000)
+    # agent.dump(file_name)
     evaluation, se = env_interaction.policy_evaluation(
                     env=env, 
                     policy=agent.get_policy())

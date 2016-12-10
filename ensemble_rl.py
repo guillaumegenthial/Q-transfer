@@ -20,7 +20,8 @@ class EnsembleQLearning(SimpleQLearning):
         exploration_start=1.,
         exploration_end=0.1,
         eligibility=0.9, 
-        reload_weights=False):
+        reload_weights=False,
+        lr=0.001):
         """
         `actions` is the list of possible actions at any state
         `sources` a list of source SimpleQLearning
@@ -35,6 +36,7 @@ class EnsembleQLearning(SimpleQLearning):
         self.explorationProb = exploration_start
         self.numIters = 0
         self.eligibility = eligibility
+        self.lr = lr
 
         if weights and reload_weights:
             self.load(weights)
@@ -81,7 +83,7 @@ class EnsembleQLearning(SimpleQLearning):
         return sum(self.coefs[i] * sources[i].evalQ(state, action) for i in xrange(self.n_sources))
 
     def getStepSize(self):
-        return 0.01
+        return self.lr
 
     def updateQ(self, state, action, gradient):
         for i in xrange(self.n_sources):

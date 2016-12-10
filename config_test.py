@@ -1,10 +1,11 @@
 EXP_NAME = "test"
 ENV = 'MountainCar-v0'
 TARGET_NAMES = [
-"full",
+"time",
 ]
 SOURCE_NAMES = [
-"standard",
+"bumps",
+"standard"
 ]
 VERBOSE = False
 EXPLORATION_PROBA_START = 0.2
@@ -20,3 +21,6 @@ TRAIN = True
 DEEP_MODES = [1]
 RELOAD_FREQ = 200
 EXPERIENCE_REPLAY_SIZE = 10000
+AVERAGE_TIMES = 1
+LR_ENSEMBLE = 0.001
+LR_DEEP = 0.001

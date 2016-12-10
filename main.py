@@ -31,6 +31,8 @@ ELIGIBILITY             = config.ELIGIBILITY
 TRAIN                   = config.TRAIN
 DEEP_MODES              = config.DEEP_MODES
 AVERAGE_TIMES           = config.AVERAGE_TIMES
+LR_ENSEMBLE             = config.LR_ENSEMBLE
+LR_DEEP                 = config.LR_DEEP
 
 env = gym.make(config.ENV)
 fout = open("results/{}.txt".format(EXP_NAME), "wb", 0)
@@ -133,7 +135,8 @@ for target_name in TARGET_NAMES:
                     exploration_start=EXPLORATION_PROBA_START,
                     exploration_end=EXPLORATION_PROBA_END, 
                     eligibility=ELIGIBILITY,
-                    reload_weights=RELOAD_WEIGHTS
+                    reload_weights=RELOAD_WEIGHTS,
+                    lr=LR_DEEP
                 )
 
                 training_rewards = rl_deep.train(
@@ -152,7 +155,7 @@ for target_name in TARGET_NAMES:
                     policy=rl_deep.getPolicy(), 
                     discount=DISCOUNT,
                     num_trials=NUM_TRIALS_EVAL,
-                    max_iter=MAX_ITER
+                    # max_iter=MAX_ITER
                 )
 
                 fout.write("\t{}\t{}\t+/-{}\t({} at training time)\n".format(name, evaluation, se, np.mean(training_rewards)))
@@ -173,6 +176,7 @@ for target_name in TARGET_NAMES:
                 exploration_end=EXPLORATION_PROBA_END, 
                 eligibility=ELIGIBILITY,
                 reload_weights=RELOAD_WEIGHTS, 
+                lr=LR_ENSEMBLE
             )
 
             rl_ens.preliminaryCheck(np.array([-0.5, 0]),0)
@@ -195,7 +199,7 @@ for target_name in TARGET_NAMES:
                 policy=rl_ens.getPolicy(), 
                 discount=DISCOUNT,
                 num_trials=NUM_TRIALS_EVAL,
-                max_iter=MAX_ITER
+                # max_iter=MAX_ITER
             )
 
 
@@ -237,7 +241,7 @@ for target_name in TARGET_NAMES:
                 policy=rl.getPolicy(), 
                 discount=DISCOUNT,
                 num_trials=NUM_TRIALS_EVAL,
-                max_iter=MAX_ITER
+                # max_iter=MAX_ITER
             )
 
             fout.write("\t{}_direct\t{}\t+/-{}\t({} at training time)\n\n".format(name, evaluation, se, np.mean(training_rewards)))
