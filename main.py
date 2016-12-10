@@ -33,6 +33,7 @@ DEEP_MODES              = config.DEEP_MODES
 
 env = gym.make(config.ENV)
 fout = open("results/{}.txt".format(EXP_NAME), "wb", 0)
+print "run exp", EXP_NAME
 
 discreteExtractor = env_interaction.discreteExtractor(env)
 featureExtractor = env_interaction.simpleFeatures(env)
@@ -234,7 +235,7 @@ for target_name in TARGET_NAMES:
 
         fout.write("\t{}_direct\t{}\t+/-{}\t({} at training time)\n\n".format(name, evaluation, se, np.mean(training_rewards)))
 
-    utils.plot_rewards(training_rewards_list, file_name="plots/{}_{}_transfer_plots.png".format(EXP_NAME, target_name))
+    # utils.plot_rewards(training_rewards_list, file_name="plots/{}_{}_transfer_plots.png".format(EXP_NAME, target_name))
 
 # save config parameters
 fout.write("\n# Config:\n" + "\n".join(

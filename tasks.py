@@ -23,13 +23,29 @@ SOURCES = {
         "obstacles": [] 
     },
 
-    "more_actions" : {
+    "more_actions1" : {
         "reward_modes" : [
                 ("time", 1),
                 ("energy", 0),
                 ("distance", 0),
                 ("center", 0),
                 ("height", 0)
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "obstacles" : [] ,
+        "neutral": 2, 
+        "actions_nb" : 5
+    },
+
+    "more_actions2" : {
+        "reward_modes" : [
+                ("time", 0),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 1)
                 ],
         "slope": 0.0025,
         "max_speed": 0.07,
@@ -56,8 +72,8 @@ SOURCES = {
         "high": -0.4,
         "actions_nb": 3,
         "neutral": 1,
-        "p_bananas": 0.1,
-        "h_bananas": 0.2,
+        "p_bananas": 0.3,
+        "h_bananas": 0.5,
         "obstacles": [] 
     },
 
@@ -289,10 +305,10 @@ TARGETS = {
     "more_actions" : {
         "reward_modes" : [
                 ("time", 1),
-                ("energy", 1),
-                ("distance", 1),
-                ("center", 1),
-                ("height", 1)
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 0)
                 ],
         "slope": 0.0025,
         "max_speed": 0.07,
@@ -304,6 +320,26 @@ TARGETS = {
         "actions_nb" : 5,
         "neutral": 2
     },
+
+    "time" : {
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 0)
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "obstacles" : [
+        (-.5, .3, .3), 
+        (.3, .2, .1), 
+        (0, .2, .1)] ,
+        "actions_nb" : 3,
+        "neutral": 1
+    },
+
 
     "full_energy" : {
         "reward_modes" : [

@@ -87,7 +87,7 @@ class EnsembleQLearning(SimpleQLearning):
         for i in xrange(self.n_sources):
             self.coefs[i] = self.coefs[i] - self.getStepSize() * gradient * self.sources[i].evalQ(state, action)
 
-        self.print_coefs()
+        # self.print_coefs()
         self.normalize()
 
     def print_coefs(self):
