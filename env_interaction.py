@@ -88,7 +88,7 @@ def simpleFeatures(env):
         pos_index = int((pos - env.low[0])/r_pos * 100)
         vel_index = int((vel - env.low[1])/r_vel * 100)
         features = [
-            ((pos_index, vel_index), 1), 
+            ((pos_index, vel_index, action), 1), 
             (('pos', pos_index, action), 1), 
             (('vel', vel_index, action), 1), 
             (action, 1)

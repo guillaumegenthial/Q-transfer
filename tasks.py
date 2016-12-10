@@ -23,6 +23,22 @@ SOURCES = {
         "obstacles": [] 
     },
 
+    "more_actions" : {
+        "reward_modes" : [
+                ("time", 1),
+                ("energy", 0),
+                ("distance", 0),
+                ("center", 0),
+                ("height", 0)
+                ],
+        "slope": 0.0025,
+        "max_speed": 0.07,
+        "power" :0.001,
+        "obstacles" : [] ,
+        "neutral": 2, 
+        "actions_nb" : 5
+    },
+
     "bananas": {
         "reward_modes": [
                 ("time", 1),
@@ -116,7 +132,7 @@ SOURCES = {
 
     "energy" : {
         "reward_modes": [
-                ("time", 1),
+                ("time", 0),
                 ("energy", 1),
                 ("distance", 0),
                 ("center", 0),
@@ -138,7 +154,7 @@ SOURCES = {
 
     "distance" : {
         "reward_modes" : [
-                ("time", 1),
+                ("time", 0),
                 ("energy", 0),
                 ("distance", 1),
                 ("center", 0),
@@ -159,7 +175,7 @@ SOURCES = {
     },
     "center" : {
         "reward_modes" : [
-                ("time", 1),
+                ("time", 0),
                 ("energy", 0),
                 ("distance", 0),
                 ("center", 1),
@@ -180,7 +196,7 @@ SOURCES = {
     }, 
     "height" : {
         "reward_modes" : [
-                ("time", 1),
+                ("time", 0),
                 ("energy", 0),
                 ("distance", 0),
                 ("center", 0),
@@ -201,7 +217,7 @@ SOURCES = {
     },   
     "still" : {
         "reward_modes" : [
-                ("time", 1),
+                ("time", 0),
                 ("energy", 0),
                 ("distance", 0),
                 ("center", 0),
@@ -285,7 +301,8 @@ TARGETS = {
         (-.5, .3, .3), 
         (.3, .2, .1), 
         (0, .2, .1)] ,
-        "actions_nb" : 5
+        "actions_nb" : 5,
+        "neutral": 2
     },
 
     "full_energy" : {
