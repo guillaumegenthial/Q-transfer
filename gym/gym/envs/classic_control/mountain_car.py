@@ -119,7 +119,7 @@ class MountainCarEnv(gym.Env):
 
     def set_task_params(self, params):
         self.set_task(
-            modes = params.get("modes", [
+            modes = params.get("reward_modes", [
                 ("time", 1),
                 ("energy", 0),
                 ("distance", 0),
