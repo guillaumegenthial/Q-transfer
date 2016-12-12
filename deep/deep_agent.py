@@ -61,7 +61,7 @@ class ValueFunctionApproximator(object):
 
         nn_cost = T.sum(T.sqr(nn_y - nn_z))
 
-        nn_updates = self.rmsprop(nn_cost)
+        nn_updates = self.rmsprop(nn_cost, self.params)
 
         self.f_train = theano.function([nn_x, nn_z],
                                        [nn_y, nn_cost],
@@ -74,22 +74,23 @@ class ValueFunctionApproximator(object):
 
         return nn_lh3
 
-    def rmsprop(self, cost):
-        grads = T.grad(cost, self.params.values())
+    def rmsprop(self, cost, params):
+        grads = T.grad(cost, params.values())
         nn_updates = []    
 
         self.accu = collections.OrderedDict()
-        for name, shared_variable in self.params.iteritems():
+        for name, shared_variable in params.iteritems():
             w = shared_variable.get_value(borrow=True)
             w = np.zeros_like(w)
             self.accu[name] = theano.shared(w.astype(floatX), name)
 
-        for p, g, acc, in zip(self.params.values(), grads, self.accu.values()):
+        for p, g, acc, in zip(params.values(), grads, self.accu.values()):
             new_acc = 0.9*acc + 0.1*g**2
             nn_updates.append((acc, new_acc))
             nn_updates.append((p, p - self.lr * g / T.sqrt(new_acc + 1e-6)))
 
         return nn_updates
+
 
     def dump(self, file_name):
         import pickle
@@ -238,23 +239,29 @@ class ValueFunctionTransfer(ValueFunctionApproximator):
         for s in self.sources:
             inputs.append(s.value_function.get_last_hidden_layer(nn_x))
 
-        inputs = T.concatenate(inputs, axis=1)
+        inputs = T.concatenate(inputs, axis=-1)
 
 
         # theano implementation
-        nn_lh2 = self.fully_connected("transfer_nn_lh2", inputs, self.hidden_layer_size*len(self.sources), 512, "relu")
-        nn_lh3 = self.fully_connected("transfer_nn_lh3", nn_lh2, 512, 256, "relu")
-        nn_y = self.fully_connected("transfer_nn_y", nn_lh3, 256, self.nA,  None)
+        nn_lh2 = self.fully_connected("transfer_nn_lh2", inputs, self.hidden_layer_size*len(self.sources), 256, "relu")
+        # nn_lh3 = self.fully_connected("transfer_nn_lh3", nn_lh2, 512, 256, None)
+        nn_y = self.fully_connected("transfer_nn_y", nn_lh2, 256, self.nA,  None)
 
         self.f_predict = theano.function([nn_x], nn_y)
 
         nn_cost = T.sum(T.sqr(nn_y - nn_z))
 
-        nn_updates = self.rmsprop(nn_cost)
+        nn_updates = self.rmsprop(nn_cost, self.params)
+        for s in self.sources:
+            params = s.value_function.params
+            params = {n: p for n, p in params.iteritems() if n[-1] != "y"}
+            nn_updates += self.rmsprop(nn_cost, params)
 
         self.f_train = theano.function([nn_x, nn_z],
                                        [nn_y, nn_cost],
                                        updates=nn_updates)
+
+    
 
 class ReplayMemory(object):
     def __init__(self, agent, capacity):

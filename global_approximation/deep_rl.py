@@ -181,7 +181,7 @@ class DeepQTransfer(SimpleQLearning):
             # weight each input q value
             q_values_pond = q_values * alpha
             h3 = self.fully_connected("h3", q_values_pond, self.n_sources, self.n_sources*2, bak, "relu")
-            h4 = self.fully_connected("h4", q_values_pond, self.n_sources*2, self.n_sources, bak, "relu")
+            h4 = self.fully_connected("h4", h3, self.n_sources*2, self.n_sources, bak, "relu")
             output = self.fully_connected("out", h4, self.n_sources, 1, bak, None).sum()
 
         elif self.mode == 3:
@@ -193,7 +193,7 @@ class DeepQTransfer(SimpleQLearning):
             # weight each input q value
             q_values_pond = q_values * alpha
             h3 = self.fully_connected("h3", q_values_pond, self.n_sources, self.n_sources*2, bak, "relu")
-            h4 = self.fully_connected("h4", q_values_pond, self.n_sources*2, self.n_sources, bak, "relu")
+            h4 = self.fully_connected("h4", h3, self.n_sources*2, self.n_sources, bak, "relu")
             output = self.fully_connected("out", h4, self.n_sources, 1, bak, None).sum()
 
         else:

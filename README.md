@@ -13,10 +13,22 @@ python setup.py develop
 cd ..
 ```
 
-## run
+## Global approximation methods
+
+Files are under the `global_approximation` repository.
+To run experience with a specified config file
 
 ```
-python main.py
+python main.py path_to_config_file
 ```
 
+## Deep Q networks
+
+Files are under the `deep` repository.
+To run experience with a specified config file,
+
+
+```
+python main_deep.py path_to_config_file
+```
 

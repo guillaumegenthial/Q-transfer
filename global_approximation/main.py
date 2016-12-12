@@ -35,7 +35,7 @@ LR_ENSEMBLE             = config.LR_ENSEMBLE
 LR_DEEP                 = config.LR_DEEP
 
 env = gym.make(config.ENV)
-fout = open("results/{}.txt".format(EXP_NAME), "wb", 0)
+fout = open("../results/{}.txt".format(EXP_NAME), "wb", 0)
 print "run exp", EXP_NAME
 
 discreteExtractor = env_interaction.discreteExtractor(env)
@@ -50,7 +50,7 @@ if TRAIN:
         if name in SOURCE_NAMES:
             print("\nTask {}".format(name))
             env.set_task_params(param)
-            file_name = "weights/{}_{}.p".format(name, NUM_TRIALS_SOURCES)
+            file_name = "../weights/{}_{}.p".format(name, NUM_TRIALS_SOURCES)
 
             rl = base_rl.SimpleQLearning(
                 name=name, 
@@ -89,7 +89,7 @@ if TRAIN:
 sources = []
 for name, param in SOURCES.iteritems():
     if name in SOURCE_NAMES:
-        file_name = "weights/{}_{}.p".format(name, NUM_TRIALS_SOURCES)
+        file_name = "../weights/{}_{}.p".format(name, NUM_TRIALS_SOURCES)
         sources.append(base_rl.SimpleQLearning(
             name=name, 
             actions=range(env.action_space.n), 
@@ -123,7 +123,7 @@ for target_name in TARGET_NAMES:
             print "\nDeep transfer"
             for deep_mode in DEEP_MODES:
                 name = "{}_deep_{}".format(target_name, deep_mode)
-                file_name = "weights/{}_{}.p".format(name, num_trials)
+                file_name = "../weights/{}_{}.p".format(name, num_trials)
 
                 rl_deep = deep_rl.DeepQTransfer(
                     name=name, 
@@ -164,7 +164,7 @@ for target_name in TARGET_NAMES:
             ########## LINEAR TRANSFER IMPLEMENTATION #########
             print "\nLinear transfer"
             name = "{}_linear".format(target_name)
-            file_name = "weights/{}_{}.p".format(name, num_trials)
+            file_name = "../weights/{}_{}.p".format(name, num_trials)
 
             rl_ens = ensemble_rl.EnsembleQLearning(
                 name=name, 
@@ -208,7 +208,7 @@ for target_name in TARGET_NAMES:
             ########## LEARNING FROM SCRATCH #########
             print "\nLearning from scratch"
             name = "{}_direct".format(target_name)
-            file_name = "weights/{}_{}.p".format(name, num_trials)
+            file_name = "../weights/{}_{}.p".format(name, num_trials)
 
             rl = base_rl.SimpleQLearning(
                 name=name, 
