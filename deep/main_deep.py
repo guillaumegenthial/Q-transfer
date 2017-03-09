@@ -1,19 +1,15 @@
 import sys, json
 import gym
-import base_rl
 import env_interaction
 import tasks
-import ensemble_rl
-import deep_rl
 import numpy as np
-import utils
-from deep_agent import ValueFunctionApproximator, DeepAgent, deepTransferAgent, Extractor
+from deep_agent import ValueFunctionApproximator, DeepAgent, deepTransferAgent, Extractor, Interaction
 
 # 0. Get config and arguments for experiment
 if len(sys.argv) > 1:
     config = __import__(sys.argv[1].replace(".py", ""))
 else:
-    config = __import__("config")
+    config = __import__("config_deep")
 
 EXP_NAME                = config.EXP_NAME
 ENV                     = config.ENV
@@ -44,17 +40,17 @@ TRANSFORM = True
 MAX_TIME = 1800
 
 # 1. train sources agents
-if TRAIN:
+if True:
     # use the same value function for every deep agent
     extractor = Extractor(env)
     fout.write("# Sources performance\n")
     for name, param in SOURCES.iteritems():
-        if name in SOURCE_NAMES:
+        if name in SOURCE_NAMES and name == "standard":
             print("\nTask {}".format(name))
             env.set_task_params(param)
             file_name = "../weights/{}_{}_deep_transform.p".format(name, NUM_TRIALS_SOURCES)
 
-            agent = DeepAgent(env, eps=0.5, learning_rate=0.0001, transform=True,
+            agent = DeepAgent(env, eps=0.5, learning_rate=0.001, transform=True,
                 extractor=extractor)
 
             agent.train(n_episodes=NUM_TRIALS_SOURCES, 
@@ -69,6 +65,8 @@ if TRAIN:
                             num_trials=NUM_TRIALS_EVAL,
                             # max_iter=MAX_ITER
                             )
+            interaction = Interaction(agent, env)
+            interaction.play()
 
 
             fout.write("\t{}\t{}\t+/-{}\n".format(name, evaluation, se))
@@ -77,12 +75,34 @@ if TRAIN:
 sources = []
 for name, param in SOURCES.iteritems():
         if name in SOURCE_NAMES:
+            print("\nTask {}".format(name))
             file_name = "../weights/{}_{}_deep_transform.p".format(name, NUM_TRIALS_SOURCES)
             agent = DeepAgent(env, eps=0.5, learning_rate=0.0001, transform=True)
+
+            ################################################
+            #############       OPTIONAL    ################                       
+            # just for printing and see how each agent performs in its env
+            env.set_task_params(param)
+
+            evaluation, se = env_interaction.policy_evaluation(
+                            env=env, 
+                            policy=agent.get_policy(),
+                            discount=DISCOUNT,
+                            num_trials=NUM_TRIALS_EVAL,
+                            # max_iter=MAX_ITER
+                            )
+
+            interaction = Interaction(agent, env)
+            interaction.play()
+
+            fout.write("\t{}\t{}\t+/-{}\n".format(name, evaluation, se))
+
+            ################################################
 
             agent.load(file_name)
 
             sources.append(agent)
+    
 
 
 # 3. train Targets from sources with different values of num_trials

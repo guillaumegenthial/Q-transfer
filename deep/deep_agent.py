@@ -383,6 +383,24 @@ class deepTransferAgent(DeepAgent):
     def load(self, file_name):
         self.value_function.load(file_name)
 
+class Interaction(object):
+    def __init__(self, agent, env):
+        self.agent = agent
+        self.env = env
+
+    def play(self, max_steps=500):
+        policy = self.agent.get_policy()
+        env = self.env
+        s = env.reset()
+        for t in xrange(max_steps):
+            env.render()
+            a = policy(s)
+            s, r, done, info = env.step(a)
+            if done:
+                print("Episode ended in {} episodes".format(t))
+                break
+
+
 
 
 

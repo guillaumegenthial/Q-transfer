@@ -3,7 +3,7 @@
 Fork of gym repo, with mountain_car.py modified in `gym/gym/envs/classic_control`
 
 
-## installation
+## Installation
 For simplicity, gym repo is cloned in the repo. To install project, 
 
 ```

@@ -1,0 +1,422 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\graphicspath{{fig/}} % set of paths to search for images
+
+
+%\usepackage{nips_2016}
+\usepackage{aaai}
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+\frenchspacing
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
+
+% ref packages
+\usepackage{nameref}
+% folowing  must be in this order
+\usepackage{varioref}
+\usepackage[colorlinks=true, citecolor=blue, allcolors=blue]{hyperref}
+\usepackage{cleveref}
+
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+%\usepackage[margin=2cm]{geometry}
+
+% ref packages
+\usepackage{nameref}
+
+\newenvironment{myitemize}
+{ \begin{itemize}
+		\setlength{\itemsep}{0pt}
+		\setlength{\parskip}{0pt}
+		\setlength{\parsep}{0pt}     }
+	{ \end{itemize}                  } 
+    
+%\nipsfinalcopy % Uncomment for camera-ready version
+
+\title{AA228 Project Report\\
+\LARGE{Transfer of Q values across tasks in Reinforcement Learning} %\\[4mm]
+}
+\author{
+Sebastien DUBOIS\\
+\texttt{sdubois@stanford.edu} 
+\And Guillaume GENTHIAL\\
+\texttt{genthial@stanford.edu}}
+
+\date{12/10/2016}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+This project investigates methods to transfer knowledge between \textit{source}  and \textit{target} tasks within the framework of Q-learning with global approximation. Given an environment, a task is defined as a sub-domain of states-actions, altered dynamics and a specialized objective (reward function). First, we train agents on simple \textit{source} tasks. Then, we use this knowledge to train an agent on a more complicated \textit{target} task. Our models learn the \textit{target} Q-function using the \textit{source} Q-functions as features and some (light) interaction with the environment. We tested our algorithms against the mountain-car benchmark and observed general improvement in both speed and performance. Application to Deep Q Learning is also discussed.
+
+\end{abstract}
+\section{Introduction}
+The idea of transfer learning is to build knowledge from a set of similar \textit{source tasks} and apply it to a \textit{target task}. The benefits of transfer include improved initial or asymptotic performance, reduced learning time... For instance, we can imagine that an autonomous car could benefit from the knowledge of different tasks, such as avoiding obstacles, driving efficiently, etc., instead of having to learn every task from scratch at the same time. 
+
+As stated in \cite{Lazaric2012}, we can distinguish 3 categories of transfer learning:
+1. {Inductive transfer learning}: transfer from a single source task to a target task with a fixed domain (state and action space). Source and target tasks can differ by their transition and reward functions. 2. \textit{Transfer across tasks with fixed domain}: generalize from a set of source tasks to improve target task performance. 3. \textit{Transfer across tasks with different domains}.
+ 
+% We will focus on \textit{transfer across tasks with fixed domain}. With a given environment, we will set a set of similar source tasks, designed and chosen by a human expert, train agents on these tasks, and evaluate performance on a target task.
+
+We want to address the case where our target task is a difficult, real-world problem for which we can't afford to learn directly in this environment (eg driving a plane), but for which we can design imperfect models and simulations (source tasks). We restrict our work to source tasks for which the state-action domain is a subset of the target state-action domain. As we can interpret a subset of state-action as changing the dynamics, we fall under the scope of \textit{transfer across tasks with fixed domain}
+
+\section{Related Work}
+
+\cite{Lazaric2012} and \cite{JMLR09-taylor} provide an overview of  transfer learning in reinforcement learning. \cite{Lazaric:2008:TSB:1390156.1390225} studies transfer of samples in Batch Reinforcement Learning, evaluating task compliance and sample relevance. \cite{JMLR07-taylor} propose a method to map states and action between source and target tasks for temporal difference learning. On the related issue of multitask reinforcement learning, \cite{DBLP:journals/corr/BorsaGS16} synthesize methods to learn shared representation for value functions, exploiting the shared structure between tasks.
+
+More recent work makes use of deep learning to estimate the Q function of the target task. A starting point on transfer of parameters in deep neural network is \cite{DBLP:journals/corr/YosinskiCBL14}. Actor-Critic method \cite{DBLP:journals/corr/ParisottoBS15} and policy distillation \cite{DBLP:journals/corr/RusuCGDKPMKH15} use model compression techniques. \cite{DBLP:journals/corr/RusuRDSKKPH16} introduce progressive networks, an architecture for neural networks that adds layers as we keep discovering new tasks, while making use of the former learned tasks.
+
+\section{Models}
+
+\subsection{Background and notation}
+We model an environment as a Markov decision process $ (\mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \gamma )$ where $ \mathcal{S}$ are the states, $ \mathcal{A} $ the actions, $\mathcal{T}: s', (s, a) \mapsto \mathbb{P}(s' | s, a) $ the transition function, $ \mathcal{R}: (s, a)  \mapsto R(s,a) $  the reward function and $ \gamma $ a discount factor.
+
+Given a policy $ \pi : s \mapsto a $, we can define a Q value function $ Q_{\pi} : (s,a) \mapsto Q(s,a) $ as the expected discounted reward over all paths starting in $ s $ while taking action $a$, 
+
+\begin{align*}
+Q^{\pi} (s,a) = \mathbb{E}_{\pi, \mathcal{T}} [ \sum_{t=0}^{\infty}\gamma^t r_t]
+\end{align*}
+
+The best policy is the one that maximizes our expected reward. The idea of Q-learning is that we can iteratively compute the optimal Q-value function thanks to the Bellman equation. On a transition $(s,a,r,s')$, 
+
+\begin{align*}
+Q(s,a) = r + \gamma * \max_{a'} Q(s', a')
+\end{align*}
+
+Then, we have the following update rule used while interacting with the environment, using a learning rate $ \eta $ :
+
+\begin{align*}
+Q(s, a) \leftarrow Q(s,a) + \eta (r + \gamma \max_{a'}Q(s', a') - Q(s,a))
+\end{align*}
+
+\subsection{Approach}\label{sec_approach}
+
+Assuming that we can easily compute (or we are given) the Q functions for the source tasks, our goal is to learn a Q function for the target task, using the source Q functions and some (light) interaction with the target environment. 
+
+% We first focused on Q-learning with linear function approximation. Consider the state-action domain of the target task $\mathcal{S}_T \times \mathcal{A}_T$ and a feature function $\beta : \mathcal{S}_T \times \mathcal{A}_T\to \mathbb{R}^p$. If we want to estimate the Q function of the target task by $\forall s,a \; Q_T(s,a) = \theta^T \beta(s,a)$, then our goal is to learn such function as accurately and quickly as possible (see next section for the metric details) given a set of source tasks $t_1, \dots, t_n$, for which we would learn $Q_{t_i}(s,a) = \theta_{t_i}^T \beta(s,a)$.
+
+% \subsection{Transfer learning as a warm start}
+%We will start with a baseline which consists in using a single (and then multiple) source task to find a good initialization of $\theta$ when exploring the target task to learn $Q_T$.
+
+% \subsection{Transfer by learning task similarities}
+% Another idea is to integrate the feedback from the target task exploration not directly into $\theta$, but rather to learn a mapping $(\theta_{t_1}, \dots, \theta_{t_n}) \to \theta$. 
+
+% For example, assume a linear model where $\theta = \alpha_0 + \sum_i \alpha_i \theta_{t_i}$. While in traditional Q-learning a new observation is used to update $\theta$, here we would propagate the update back to $\alpha$. More precisely the difference is that the former updates only the coordinates of $\theta$ for which $\beta(s,a) \neq 0$ whereas the latter is a global update.
+
+First, we consider that the Q function of the source tasks can be written using global approximation. For a source $ s_i $ we will write $Q_{i}(s,a) = \theta_i \cdot \beta(s,a)$, where $\theta_i$ is a weight vector and $\beta(s,a)$ is a feature vector. The feature function $ \beta $ is shared across the different sources and target tasks, even though the state-action spaces may not be the same. 
+
+Within this framework, we study different methods $\Phi$ to estimate $Q_{T}(s,a) = \Phi(Q_i(s,a), s, a) $. Then, we investigate Deep Q learning.
+
+% The same feature extractor $ \beta $ can be applied to the pairs $(s,a)$ across the different sources and target tasks even though the state-action spaces may not be the same. Then we investigated transfer learning for Deep Q-learning (section \ref{sec_deep-q}).
+
+\subsection{Fixed linear combination}
+Our first idea was to learn the target Q function as a linear combination of the $Q_i$:
+\begin{align}
+Q_{T} = \sum_{i} \alpha_i Q_i \iff \theta_{T} = \sum_i \alpha_i \theta_i
+\end{align}
+
+We see three advantages of this model
+\begin{enumerate}
+\item the representation is very compact: we only need to store the sources' $\theta_i$ at learning time and can compute a single $\theta$ for deployment
+\item if knowledge is transferable with such a model, then the transfer should be learned quickly since we have few parameters to learn: it depends only on the number of sources (versus the dimension of the state-action space in classic Q-learning approaches)
+\item we can easily interpret the $ \alpha_i $ as a measure of task compliance.
+\end{enumerate}
+
+\noindent We implemented this method via stochastic gradient descent updates on the coefficient vector $\alpha$. Precisely, while the standard update when observing ($s,a,r,s'$) is 
+
+\begin{align}
+\theta \leftarrow \theta - \eta \left(Q(s,a) - (r + \max_{a'} Q(s', a')) \right) \beta(s,a)
+\end{align}\label{eq:base_ql}
+
+our update is 
+\begin{align}
+\alpha_i \leftarrow \alpha_i - \eta \left(Q(s,a) - (r + \max_{a'} Q(s', a')) \right) Q_i(s,a)
+\end{align}
+where $Q$ denotes the current estimate for the target's Q function.
+
+
+\subsection{Adaptive linear combination}\label{sec__adaptive}
+The problem with the previous model is its lack of expressiveness since it computes a Q function as a weighted sum of the sources' Q functions - \textit{with fixed weights} (once learned).
+However, consider the case where we can split our target domain into sub-domains. On each sub-domains, the target task is very similar to one of the source tasks (not always the same). In this situation, the specific source task conveys a lot of information that should be transferred to the target, and in particular we would like $Q_{T}(s,a)$ to select the relevant $Q_i$. 
+
+Motivated by this example, we considered $Q_{T}$ of the form
+\begin{align}
+Q_{T}(s,a) = \sum_{i=1}^{n} \alpha_i(s,a) Q_i(s,a)
+\end{align}
+
+We decided to model these functions $\alpha_i$ with fully connected neural networks.  We obtained good performance with a shared fully connected neural network with 2 hidden layers of size $ 2 n $ with $ sigmoid$ activation. The output of the network is a vector of size $ n$ corresponding to the $ \alpha_i$ . It allows us to model complex functions while using the same gradient descent framework based on the temporal difference squared error. See Figure \ref{fig:adaptive_network}.
+
+\begin{figure}
+\includegraphics[scale=0.5]{adaptive_network.png}
+\caption{Adaptive linear combination network}
+\label{fig:adaptive_network}
+\end{figure}
+
+More specifically, when observing a transition $(s,a,r,s')$, we use the network to compute $  y = (r + \max_{a'} Q_{T}(s', a') $. Then, we use $ y $ to update our network using a gradient descent algorithm on the squared loss $ (y - Q_{T}(s,a))^2 $. We used the double-Q learning trick (use old weights to compute $ y $) and both SGD and RMSProp for gradient descent.
+
+In the SGD case, our update rule for the weights $ w $ of the network is
+
+\begin{equation}
+\begin{split}
+w &\leftarrow w - \\
+&\eta \left(Q_{T}(s,a, \mathbf{\tilde{w}}) - (r + \max_{a'} Q_{T}(s', a', \mathbf{w})) \right)\frac{\partial Q_{T}(s,a, \mathbf{w})}{w}
+\end{split}
+\end{equation}
+
+
+
+Such a model has the advantage of being more \textit{selective} on the source task via its adaptive linear combination. However, it requires to store all the $\theta_i$ because we cannot compute explicitly a $ \theta_{target} $ as a function of the $ \theta_i $.
+
+\subsection{Using $ Q_i$ as features}
+\label{sec:qfeatures}
+
+The last model has the advantage of keeping the number of parameters reasonably low while providing good expressiveness by selecting relevant source tasks. A natural idea to go a step further is to consider the $ Q_i $ as features to compute $Q_{T} $, and consider more general functions than adaptive linear combination.
+
+\begin{align}
+Q_{T}(s,a) = \Phi(Q_1(s,a), ..., Q_n(s,a), s, a)
+\end{align}
+
+where $\Phi $ can be any function. Note that this formulation include the two previous models. 
+
+We considered a variant of the adaptive linear combination. With the same architecture, we compute $ \alpha_i (s, a) $. Then, we consider the weighted vector $ ( \alpha_1 (s,a) Q_1(s,a), ..., \alpha_n(s,a)Q_n(s,a) )$ (this weighted vector echoes attention-based models). We then use this vector as input of a 2-layer fully connected neural network whose output is the desired Q-value. We tested two variants of the architecture, changing the activation from \textit{sigmoid} to \textit{relu}.
+
+\subsection{Deep Q-learning}\label{sec_deep-q}
+
+These methods can also be applied to the case where we write the source Q functions $ Q_i $  as deep Q networks. We use the $Q_i$ as features like the previous section. We can also consider a more powerful feature extraction, using the last hidden layer of the $ Q_i $ networks as input features of the target network. At training time on the target, we can also choose to back-propagate the gradients to the source networks. This approach echoes \cite{DBLP:journals/corr/ParisottoBS15} who use compression techniques to link the target network to the source networks. The difference here with their approach is that we don't look for network compression and plug every source network into a bigger target network.
+
+\section{Experiment}
+
+We used python and Theano to implement our models on a modified mountain car environment from OpenAI Gym. The code can be found on github\footnote{https://github.com/GuillaumeGenthial/Q-transfer}.
+
+\subsection{Test environment}\label{sec_env}
+
+%We propose to test the transfer on some environment of OpenAI Gym. 
+%As we want to create different tasks from a same domain, we want to pick something where we can easily shape similar tasks. For instance, with the mountain car environment, we can create new (simpler) tasks by 
+%\begin{myitemize}
+%\item modifying the reward function
+%\item limiting the actions
+%\item adding noise to the mountain's shape
+%\end{myitemize}
+%Then, assuming that we created $ n $ different tasks and computed $ Q_1, ... Q_n$ the Q value functions, we evaluate the performance of the different methods of transfer for the inferred $ Q_{T} $ along the previously defined metrics.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.4]{mountain_car2.png}
+\caption{Screenshot of the mountain car environment}
+\label{fig:env}
+\end{figure}
+
+We used the mountain car environment from OpenAi's Gym (see Figure \ref{fig:env}), to which we made the following changes:
+
+\begin{myitemize}
+\item possibility to control the slope, maximum speed, power of actions (ie relation between action value and speed up), actions (from $a_0$ to $a_n$ instead of -1/0/1)
+
+\item rewards can be based on: \textit{time}, \textit{energy} (penalty proportional to the action's square), \textit{distance} to the goal along x-axis, \textit{center} (distance to the center), \textit{height}, \textit{still} (penalty proportional to the velocity's square).
+
+\end{myitemize}
+
+\noindent Note that some tasks, like \textit{still}, do not encourage the car to go to the flag. In addition we modified the dynamics of the environment by adding \textit{obstacles} and \textit{bananas}:
+\begin{myitemize}
+\item \textit{obstacles} are bumps or holes with pre-defined positions, and are characterized by their width and magnitude. These impact the trajectory of the car as it would in real life.
+\item \textit{bananas} refer to random slowdowns which can arise on the car's trajectory. Those are set for a task by probability of slipping at each time step and magnitude of the slowdown.
+\end{myitemize}
+
+\noindent An episode ends after we reach the goal (the flag) or after 1000 timesteps.
+
+\subsection{Tasks}
+We defined the following tasks, see Table \ref{table:tasks}.
+
+\begin{table}[!hbt]
+ \begin{tabular}{|c | c | c | c | c|} 
+ \hline
+ Task & Reward & Actions & Obst. & Bana. \\ [1ex] 
+ \hline\hline
+time & time & [-1, 1] & Yes & No\\ 
+ \hline
+more\_actions  & time & [-2,2] & Yes & No \\ [0.5ex] 
+\hline
+more\_actions1  & time & [-2,2] & No & No\\ \hline
+more\_actions2  & height & [-2,2] & No & No\\ \hline
+energy  & energy & [-1, 1] & No & No\\ \hline
+distance  & distance & [-1, 1] & No & No \\ \hline
+height  & height & [-1, 1] & No & No\\ \hline
+still  & still & [-1, 1] & No & No\\ \hline
+bumps  & time & [-1, 1] & Yes & No\\ \hline
+bananas  & time & [-1, 1] & No & Yes\\ [1ex]  \hline 
+full & all & [-2, 2] & Yes & No \\ \hline
+\end{tabular}
+\caption{Task description}
+\label{table:tasks}
+\end{table}
+
+\subsection{Evaluation}
+
+To evaluate performance of a policy, we used Monte-Carlo policy evaluation with $ 1000 $ starts at random. We report the mean and standard deviation. We use a discount factor of $ 1 $.
+
+\subsection{Implementation}
+
+\subsubsection{Global approximation}
+
+We update the weight vector $\theta$ as described in the Fixed linear combination section.
+
+For our environment, the states $s$ are a pair of position and velocity ($pos, vel$), which are both floating point numbers. There is a finite number of possible actions $a$. We consider a grid of size $ (100, 100) $ of the position-velocity space. For a given state, we consider $i_{pos} $ and $i_{vel}$ the coordinates in the grid. We construct the feature vector $\beta(s,a)$ as an indicator vector whose entries are
+
+\begin{align*}
+(i_{pos}, i_{vel}, a), (i_{pos}, a), (i_{vel}, a), a
+\end{align*}
+
+We used $\epsilon$ greedy exploration strategy with an exponentially decreasing $\epsilon$, from $1$ to $0.2$ and a constant learning rate $\eta = 0.1$.
+
+\subsection{Adaptive and $Q_i$ as features}
+We initialized the matrices of the different networks using Glorot Normal method and trained them using RMSProp with learning rate $ 0.001 $. Bias vectors were set to zero. We normalized each Q-value between $-1$ and $1$ to prevent scaling issues.
+\subsubsection{Deep Q Networks}
+
+We also implemented a deep Q network that takes as input a completed state (position, velocity, height and acceleration) and returns the Q-values for each action. We obtained good performance for the source agents using 2 hidden layers of size $ 512 $ and $ 256 $ with leaky activation ($\max(x, 0.01 x) $). We trained the network with RMSProp with learning rate $ 0.001 $ and a memory replay of size $ 100 000 $. We stopped training after 10 minutes. For technical details about deep Q learning, read \cite{mnih2013playing}.
+	
+\subsection{Metrics}
+
+In theory, given a budget of trials on the target task, we would evaluate the performance of the transfer through the following metrics:
+\begin{myitemize}
+\item \textit{jumpstart} measures the initial performance compared to the non-transfer agent.
+\item \textit{asymptotic performance} measures the final performance compared to the non-transfer agent.
+% \item \textit{average training reward} measures the average reward during training time compared to the non-transfer agent.
+\end{myitemize}
+
+\noindent However in practice, we report the average performance of a policy obtained after $N_t$ learning trials 
+%as well as the average reward obtained during these trials
+, for different values of $N_t$. Thus we can estimate \textit{jumpstart} for small values of $N_t$ and compare what the \textit{asymptotic performance} would be for different budget $N_t$.
+
+\section{Results}
+
+\subsection{Performance on source tasks}
+ We report the performance of both global approximation and deep Q network on some of the source tasks. Theses score are obtained for one training and are indicative.
+
+\begin{table}[!hbt]
+\center{
+\begin{tabular}{|c|c|c|}\hline
+Task & Global & Deep\\ \hline\hline
+bananas & \textbf{-157}(1) & -189 (3)\\
+energy & 0 (0) & 0 (0)\\
+height & \textbf{562} (2) & 71 \\
+bumps & -117 (1) & \textbf{-99} (2) \\
+more power & -50 (1) & \textbf{23} (0)\\
+standard & -142 (1) & \textbf{-117} (1)\\
+distance & -125 (1) & \textbf{-104} (3)\\
+\hline
+\end{tabular}
+}
+\vskip 0.25cm
+\caption{Score on tasks for Global Approximation and Q-networks ($ mean (std) $). Bold is best.}
+\end{table}
+
+As we can see, global approximation and Deep Q networks achieve similar performance. For speed reasons, we decided to test our transfer methods on global approximation.
+ 
+
+\subsection{Jumpstart performance}
+
+Using target task \textit{full} and all other defined tasks as sources, we observe the initial performance (after 2 trials), for the different techniques. We average the performance over 6 experiments.
+
+\begin{table}[!hbt]
+\center{
+\begin{tabular}{|c|c|}\hline
+Transfer method & performance \\ \hline\hline
+Linear & -407\\
+Adaptive linear  & \textbf{-238} \\
+$Q_i$ features, \textit{sigmoid} & -449\\
+$Q_i$ features, \textit{relu} & -340\\
+direct learning & unsuccessful \\
+\hline
+\end{tabular}
+}
+\vskip 0.25cm
+\caption{Jump start performance after 2 episodes}
+\end{table}
+
+As we could expect, learning the target task from scratch is not achieved in 2 episodes, whereas transfer methods achieve reasonable score. We observe that the more reliable method for jumpstart performance is the \textbf{adaptive linear} method, which combines flexibility and a low number of parameters. Linear method often performs very well, but seems to suffer from negative coefficients, an event which sometimes can occur. Further investigation is needed to understand and resolve this issue. Surprisingly, the method using the $Q_i$ as feature and $relu$ activation performs very well in some cases ($ -135 $ !!) explaining its good score.
+
+
+\subsection{Task compliance}
+
+We conducted the following experiment
+\begin{itemize}
+\item sources: bumps, energy, distance, height, still, more\_actions1
+\item target: more\_actions
+\end{itemize}
+
+The source task \texttt{more\_actions1} is really close to the target task \texttt{more\_actions} and this was indeed transferred to the coefficients learned by the fixed combination method. These were as follows:
+\textit{more\_actions1}: 0.9048, \textit{energy}: 0.0151, \textit{height}: -0.0399, \textit{bumps}: 0.0396, \textit{distance}: 0.0396, \textit{still}: 0.0407.
+
+We could also plot the adaptive coefficients and observe a similar behavior. This analysis proves that our framework is able to understand task compliance \textit{without relying on expert knowledge}, just by interacting with the environment.
+
+\subsection{Asymptotic performance}
+
+With the same source and target as before, we plot the performance of the transfer methods and the direct methods on figure \ref{fig:progress}.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.4]{progress.png}
+\caption{Performance over time}
+\label{fig:progress}
+\end{figure}
+
+On this special case we notice, as expected, that the transfer methods are very effective at transferring knowledge efficiently in a small amount of steps. However, after a few number of trials, the direct method outperforms the transfer agent.
+% \subsubsection{Experiment A}
+% \begin{itemize}
+% \item Sources: energy, distance, height, still, more\_actions2
+% \item Target: more\_actions
+% \end{itemize}
+
+
+% \subsubsection{Experiment B}
+
+
+% \begin{figure*}[!h]
+% \centering
+% \includegraphics[scale=1]{resultB.png}
+% \caption{Experiment B - Average reward over 1000 simulation using a policy learned after $N_t$ learning trials}
+% \end{figure*}
+We also conducted the following experiment:
+\begin{itemize}
+\item Sources: bananas, bumps, still
+\item Target: time
+\end{itemize}
+
+Here, the target task is the standard one, and the sources one are either not relevant (still encourages the car to stay in the valley), or more complicated than the target. We plot the policy  evaluation at different time step of training on Figure \ref{fig:bars}.
+
+As we would expect, we obtain much better performance with the direct learning in this case. We observe that the different transfer methods achieve similar performance on this experiment. Other experiments on different sources and targets seem to show that the most reliable method is still the adaptive combination methods, which combines flexibility and efficiency. 
+\begin{figure}
+\centering
+\includegraphics[scale=0.5]{bars.png}
+\caption{Performance evaluated at different steps}
+\label{fig:bars}
+\end{figure}
+
+\subsection{Deep Q networks}
+
+As we were able to train deep Q networks on the source tasks, we experimented transfer. We plug the last hidden layers of the source network into a fully connected network with one hidden layer of size $512$ and relu activation. We tried two approaches. One, to only train the parameters of the last layer. Two, to retrain all parameters, of both the source and the target networks. At the time of writing this report, experiments are still running, but we were not able to reproduce the transfer performance achieved with the previous methods. Then, the question is still open and could lead to further work.
+
+
+\section{Discussion}
+First we observe that the transfer methods described in this project are able to learn useful Q functions for the target task. In most cases, the adaptive combination approach almost always outperformed the simple fixed combination, even after a single learning trial.
+
+Surprisingly, all our methods converge after a couple learning trials which means that there is opportunity for much more complex forms of transfers. On the other hand, this means that our transfer methods can be used as Q function initialization for a standard Q-learning method.
+
+As we noticed that the direct method, if trained long enough, outperforms the transfer method, a compromise would be to jump start the agent with transfer and after a few iterations switch back to standard training. Our methods, which combine global approximation and neural networks could be applied to this idea. For the linear method, we only need to switch back to global approximation with the estimated $ \theta $ parameter. For the adaptive and Q-features method, more work would be required to back-propagate the gradients. 
+
+Having this in mind, using a stack of neural networks for both the input Q-value functions and the transfer would make joint training easier to implement, by simply back-propagating the gradients to the source networks. We could also imagine hybrid methods :  use the linear combination to estimate task compliance, then select the most relevant source task and initialize a deep Q network with this source's weights and finally train this network on the target task.
+
+This project also underlines the lack of a standardized test framework for transfer learning. The reinforcement learning community would benefit from such a framework, as there are obvious advantages in transfer learning, as this project investigates. 
+
+\nocite{*}
+\footnotesize
+\bibliographystyle{apalike}
+\bibliography{references}
+\end{document}
